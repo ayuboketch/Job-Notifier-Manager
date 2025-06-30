@@ -3,9 +3,12 @@
   "compilerOptions": {
     "strict": true,
     "target": "esnext",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "jsx": "react-native",
-    "types": ["nativewind/types"],
+    "types": [
+      "nativewind/types"
+    ],
     "paths": {
       "@/*": [
         "./*"
@@ -15,10 +18,10 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts",
     "app",
     "components",
-    "types"
+    "types",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ]
 }

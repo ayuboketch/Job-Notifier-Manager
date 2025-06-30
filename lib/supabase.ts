@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import Constants from 'expo-constants'
 
-const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co'
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY'
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl as string
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey as string
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)

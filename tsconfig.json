@@ -6,6 +6,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "jsx": "react-native",
+    "esModuleInterop": true,
     "types": [
       "nativewind/types"
     ],

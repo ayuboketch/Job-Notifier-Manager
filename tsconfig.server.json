@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    /* Base Options */
+    "outDir": "./dist",
+    "rootDir": "./server",
+    "target": "es2020",
+    "module": "commonjs",
+
+    /* Module Resolution */
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    
+    /* Type Checking */
+    "strict": true,
+    "skipLibCheck": true,
+    
+    /* Type Definitions */
+    "types": ["node"]
+  },
+  "include": [
+    "server/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

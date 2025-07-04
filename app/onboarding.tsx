@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
+// app/onboarding.tsx
+import React, { useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -8,113 +8,112 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Carousel from "react-native-reanimated-carousel";
+import Carousel, { ICarouselInstance } from "react-native-reanimated-carousel";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AnimatedGradientBackground from "../components/AnimatedGradientBackground";
+import { useAuth } from "../context/AuthContext";
 
 const { width, height } = Dimensions.get("window");
-
+// Define your slides array
 const slides = [
   {
-    title: "Track Job Posts Instantly",
-    description: "Monitor multiple company career pages in real time.",
-    image: require("@/assets/onboarding/slide1.png"),
+    key: "slide1",
+    title: "Welcome to Job Notifier",
+    description: "Get notified about the latest job postings tailored for you.",
+    image: require("../assets/onboarding/slide1.png"),
   },
   {
-    title: "Beat the Rush",
-    description:
-      "Get notified the moment jobs are posted. First come, first served.",
-    image: require("@/assets/onboarding/slide2.png"),
+    key: "slide2",
+    title: "Personalized Alerts",
+    description: "Set your preferences and never miss an opportunity.",
+    image: require("../assets/onboarding/slide2.png"),
   },
   {
-    title: "Save Jobs You Love",
-    description: "Bookmark and track job posts you're interested in.",
-    image: require("@/assets/onboarding/slide3.png"),
-  },
-  {
-    title: "Never Miss an Opportunity",
-    description: "Let the app monitor career pages for you 24/7.",
-    image: require("@/assets/onboarding/slide4.png"),
+    key: "slide3",
+    title: "Easy Application Tracking",
+    description: "Track your job applications and stay organized.",
+    image: require("../assets/onboarding/slide3.png"),
   },
 ];
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const router = useRouter();
+  const carouselRef = useRef<ICarouselInstance>(null);
+  const { updateOnboardingStatus } = useAuth();
+
+  const handleGetStarted = async () => {
+    await updateOnboardingStatus();
+    // The layout will automatically navigate to the dashboard.
+  };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.carouselContainer}>
-        <Carousel
-          loop={false}
-          width={width}
-          height={height * 0.7}
-          data={slides}
-          scrollAnimationDuration={600}
-          onSnapToItem={(index) => setCurrentIndex(index)}
-          renderItem={({ item }) => (
-            <View style={styles.slideContainer}>
-              <View style={styles.imageContainer}>
-                <Image
-                  source={item.image}
-                  style={styles.image}
-                  resizeMode="contain"
-                />
-              </View>
-              <View style={styles.textContainer}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.description}>{item.description}</Text>
-              </View>
-            </View>
-          )}
-        />
-      </View>
-
-      {/* Pagination dots */}
-      <View style={styles.paginationContainer}>
-        {slides.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.dot,
-              {
-                backgroundColor: index === currentIndex ? "#3B82F6" : "#64748B",
-              },
-            ]}
-          />
-        ))}
-      </View>
-
-      {/* Button section */}
-      <View style={styles.buttonContainer}>
-        {currentIndex === slides.length - 1 ? (
-          <TouchableOpacity
-            style={styles.getStartedButton}
-            onPress={() => router.push("/(auth)/signup")}
-          >
-            <Text style={styles.getStartedButtonText}>Get Started</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.navigationContainer}>
-            <TouchableOpacity
-              style={styles.nextButton}
-              onPress={() => {
-                if (currentIndex < slides.length - 1) {
-                  setCurrentIndex(currentIndex + 1);
-                }
-              }}
-            >
-              <Text style={styles.nextButtonText}>Next</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.skipButton}
-              onPress={() => router.push("/(auth)/signup")}
-            >
-              <Text style={styles.skipButtonText}>Skip</Text>
-            </TouchableOpacity>
+    <View style={styles.container}>
+      <AnimatedGradientBackground>
+        <SafeAreaView style={{ flex: 1 }}>
+          <View style={styles.carouselContainer}>
+            <Carousel
+              ref={carouselRef}
+              loop={false}
+              width={width}
+              height={height * 0.7}
+              data={slides} // your slides data
+              scrollAnimationDuration={600}
+              onSnapToItem={(index) => setCurrentIndex(index)}
+              renderItem={({ item }) => (
+                <View style={styles.slideContainer}>
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={item.image}
+                      style={styles.image}
+                      resizeMode="contain"
+                    />
+                  </View>
+                  <View style={styles.textContainer}>
+                    <Text style={styles.title}>{item.title}</Text>
+                    <Text style={styles.description}>{item.description}</Text>
+                  </View>
+                </View>
+              )}
+            />
           </View>
-        )}
-      </View>
-    </SafeAreaView>
+
+          <View style={styles.paginationContainer}>
+            {slides.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor:
+                      index === currentIndex ? "#3B82F6" : "#64748B",
+                  },
+                ]}
+              />
+            ))}
+          </View>
+
+          <View style={styles.buttonContainer}>
+            {currentIndex === slides.length - 1 ? (
+              <TouchableOpacity
+                style={styles.getStartedButton}
+                onPress={handleGetStarted}
+              >
+                <Text style={styles.getStartedButtonText}>Get Started</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.navigationContainer}>
+                <TouchableOpacity
+                  style={styles.nextButton}
+                  onPress={() => carouselRef.current?.next()}
+                >
+                  <Text style={styles.nextButtonText}>Next</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </SafeAreaView>
+      </AnimatedGradientBackground>
+    </View>
   );
 }
 

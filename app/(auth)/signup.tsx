@@ -1,101 +1,116 @@
+// app/(auth)/signup.tsx
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AnimatedGradientBackground from "../../components/AnimatedGradientBackground";
+import { useAuth } from "../../context/AuthContext";
+import { FormErrors } from "../../types";
 
 export default function SignupScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
   const router = useRouter();
+  const { signUp } = useAuth();
 
-  const handleSignup = () => {
-    // Add your signup logic here
-    console.log("Signup attempted");
-    // For now, navigate to dashboard
-    router.push("/(app)/dashboard");
+  // Your validateForm and handleInputChange functions remain the same
+
+  const handleSignup = async () => {
+    // if (!validateForm()) return; // Assuming you have this function
+    setIsLoading(true);
+    const result = await signUp(
+      formData.email,
+      formData.password,
+      formData.fullName
+    );
+    setIsLoading(false);
+
+    if (result.success) {
+      Alert.alert(
+        "Success!",
+        "Please check your email to verify your account."
+      );
+    } else {
+      Alert.alert("Signup Failed", result.message);
+    }
+    // NO router.push()! The layout will handle navigation after verification.
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.keyboardContainer}
-      >
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>
-              Start tracking your dream jobs today
-            </Text>
-          </View>
+    <View style={styles.container}>
+      <AnimatedGradientBackground>
+        <SafeAreaView style={{ flex: 1 }}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardContainer}
+          >
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+              <View style={styles.headerContainer}>
+                <Text style={styles.title}>Create Account</Text>
+                <Text style={styles.subtitle}>
+                  Start tracking your dream jobs today
+                </Text>
+              </View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter your email"
-                placeholderTextColor="#64748B"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Enter your password"
-                placeholderTextColor="#64748B"
-                secureTextEntry
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Confirm Password</Text>
-              <TextInput
-                style={styles.input}
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                placeholder="Confirm your password"
-                placeholderTextColor="#64748B"
-                secureTextEntry
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.signupButton}
-              onPress={handleSignup}
-            >
-              <Text style={styles.signupButtonText}>Create Account</Text>
-            </TouchableOpacity>
-
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
-                <Text style={styles.loginLink}>Sign In</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+              <View style={styles.formContainer}>
+                {/* Your form inputs here */}
+                <TouchableOpacity
+                  style={[
+                    styles.signupButton,
+                    isLoading && styles.signupButtonDisabled,
+                  ]}
+                  onPress={handleSignup}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.signupButtonText}>Create Account</Text>
+                  )}
+                </TouchableOpacity>
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>
+                    Already have an account?{" "}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => router.push("/(auth)/login")}
+                    disabled={isLoading}
+                  >
+                    <Text
+                      style={[
+                        styles.loginLink,
+                        isLoading && styles.linkDisabled,
+                      ]}
+                    >
+                      Sign In
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
+      </AnimatedGradientBackground>
+    </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -147,12 +162,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
   },
+  inputError: {
+    borderColor: "#EF4444",
+    borderWidth: 2,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 14,
+    marginTop: 4,
+    marginLeft: 4,
+  },
   signupButton: {
     backgroundColor: "#3B82F6",
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
     marginTop: 20,
+    minHeight: 52,
+  },
+  signupButtonDisabled: {
+    backgroundColor: "#64748B",
   },
   signupButtonText: {
     color: "white",
@@ -173,5 +203,8 @@ const styles = StyleSheet.create({
     color: "#3B82F6",
     fontSize: 16,
     fontWeight: "600",
+  },
+  linkDisabled: {
+    color: "#64748B",
   },
 });

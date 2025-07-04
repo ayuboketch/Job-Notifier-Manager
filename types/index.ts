@@ -191,6 +191,18 @@ export interface Database {
 }
 type ScheduledTask = { start: () => void; stop: () => void; destroy: () => void; getStatus: () => 'scheduled' | 'running' | 'stopped' | 'destroyed'; };
 
-function schedule( expression: string, func: () => void | Promise<void>, options?: ScheduleOptions ): ScheduledTask;
+// Define ScheduleOptions type or interface
+export interface ScheduleOptions {
+  timezone?: string;
+  runOnInit?: boolean;
+  [key: string]: any;
+}
 
-export = { schedule, }; }
+// If you only want to declare the type signature, use a type instead:
+export type ScheduleFunction = (
+  expression: string,
+  func: () => void | Promise<void>,
+  options?: ScheduleOptions
+) => ScheduledTask;
+
+// Remove the invalid export assignment and closing brace

@@ -1,6 +1,11 @@
-// STEP 1: Import and configure dotenv at the very top
+// server/index.ts
+
 import dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+// FINAL FIX: Use a more reliable path construction relative to the current file.
+// This goes from `dist/index.js` up one level to `dist` and then up another to the project root.
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
 
 // The rest of your imports
 import { createClient } from '@supabase/supabase-js';
@@ -14,9 +19,12 @@ interface AuthRequest extends Request {
 }
 
 /* ---------- Supabase ---------------------------------------------------- */
-// This will now correctly find the variables loaded by dotenv
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase URL or Service Role Key is missing from .env. Check server configuration.');
+}
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /* ---------- Domain types ------------------------------------------------ */

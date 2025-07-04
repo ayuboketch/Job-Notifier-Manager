@@ -1,3 +1,4 @@
+// app.config.js
 export default {
   expo: {
     name: "Job Notifier Manager",
@@ -43,9 +44,7 @@ export default {
       typedRoutes: true,
     },
 
-    extra: {
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
-    },
+    // FIX: The 'extra' block is removed.
+    // Expo now automatically handles variables prefixed with EXPO_PUBLIC_ from your .env file.
   },
 };

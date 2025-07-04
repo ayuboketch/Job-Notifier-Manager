@@ -14,25 +14,27 @@ import AnimatedGradientBackground from "../components/AnimatedGradientBackground
 import { useAuth } from "../context/AuthContext";
 
 const { width, height } = Dimensions.get("window");
-// Define your slides array
 const slides = [
   {
-    key: "slide1",
-    title: "Welcome to Job Notifier",
-    description: "Get notified about the latest job postings tailored for you.",
-    image: require("../assets/onboarding/slide1.png"),
+    title: "Track Job Posts Instantly",
+    description: "Monitor multiple company career pages in real time.",
+    image: require("@/assets/onboarding/slide1.png"), // Ensure these paths are correct
   },
   {
-    key: "slide2",
-    title: "Personalized Alerts",
-    description: "Set your preferences and never miss an opportunity.",
-    image: require("../assets/onboarding/slide2.png"),
+    title: "Beat the Rush",
+    description:
+      "Get notified the moment jobs are posted. First come, first served.",
+    image: require("@/assets/onboarding/slide2.png"),
   },
   {
-    key: "slide3",
-    title: "Easy Application Tracking",
-    description: "Track your job applications and stay organized.",
-    image: require("../assets/onboarding/slide3.png"),
+    title: "Save Jobs You Love",
+    description: "Bookmark and track job posts you're interested in.",
+    image: require("@/assets/onboarding/slide3.png"),
+  },
+  {
+    title: "Never Miss an Opportunity",
+    description: "Let the app monitor career pages for you 24/7.",
+    image: require("@/assets/onboarding/slide4.png"),
   },
 ];
 
@@ -42,8 +44,10 @@ export default function OnboardingScreen() {
   const { updateOnboardingStatus } = useAuth();
 
   const handleGetStarted = async () => {
+    // This function tells our AuthContext to update the user's status in Supabase.
+    // The "gatekeeper" in _layout.tsx will see this change and automatically
+    // navigate to the dashboard. We don't need to navigate here.
     await updateOnboardingStatus();
-    // The layout will automatically navigate to the dashboard.
   };
 
   return (
@@ -56,7 +60,7 @@ export default function OnboardingScreen() {
               loop={false}
               width={width}
               height={height * 0.7}
-              data={slides} // your slides data
+              data={slides}
               scrollAnimationDuration={600}
               onSnapToItem={(index) => setCurrentIndex(index)}
               renderItem={({ item }) => (
@@ -102,6 +106,7 @@ export default function OnboardingScreen() {
               </TouchableOpacity>
             ) : (
               <View style={styles.navigationContainer}>
+                {/* FIX: Call the carousel's next() method via its ref */}
                 <TouchableOpacity
                   style={styles.nextButton}
                   onPress={() => carouselRef.current?.next()}
@@ -116,6 +121,8 @@ export default function OnboardingScreen() {
     </View>
   );
 }
+
+// Your full styles object here
 
 const styles = StyleSheet.create({
   container: {

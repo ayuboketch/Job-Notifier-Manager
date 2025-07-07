@@ -5,7 +5,7 @@ export default {
     slug: "job-notifier-manager",
     version: "1.0.0",
     orientation: "portrait",
-    scheme: "jobnotifiermanager",
+    scheme: "jobtracker",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
 

@@ -9,6 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput, // <-- ADDED IMPORT
   TouchableOpacity,
   View,
 } from "react-native";
@@ -29,10 +30,36 @@ export default function SignupScreen() {
   const router = useRouter();
   const { signUp } = useAuth();
 
-  // Your validateForm and handleInputChange functions remain the same
+  // ADDED: Function to handle input changes
+  const handleInputChange = (name: string, value: string) => {
+    setFormData({ ...formData, [name]: value });
+    // Clear the error for this field when the user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: undefined });
+    }
+  };
+
+  // ADDED: Form validation function
+  const validateForm = () => {
+    const newErrors: FormErrors = {};
+    if (!formData.fullName.trim())
+      newErrors.fullName = "Full name is required.";
+    if (!formData.email.trim()) newErrors.email = "Email is required.";
+    else if (!/\S+@\S+\.\S+/.test(formData.email))
+      newErrors.email = "Email is invalid.";
+    if (!formData.password) newErrors.password = "Password is required.";
+    else if (formData.password.length < 6)
+      newErrors.password = "Password must be at least 6 characters.";
+    if (formData.password !== formData.confirmPassword)
+      newErrors.confirmPassword = "Passwords do not match.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSignup = async () => {
-    // if (!validateForm()) return; // Assuming you have this function
+    if (!validateForm()) return; // <-- Validation check enabled
+
     setIsLoading(true);
     const result = await signUp(
       formData.email,
@@ -46,6 +73,13 @@ export default function SignupScreen() {
         "Success!",
         "Please check your email to verify your account."
       );
+      // Optional: Clear form on success
+      setFormData({
+        email: "",
+        password: "",
+        confirmPassword: "",
+        fullName: "",
+      });
     } else {
       Alert.alert("Signup Failed", result.message);
     }
@@ -69,7 +103,76 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.formContainer}>
-                {/* Your form inputs here */}
+                {/* --- ADDED FORM INPUTS --- */}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput
+                    style={[styles.input, errors.fullName && styles.inputError]}
+                    value={formData.fullName}
+                    onChangeText={(text) => handleInputChange("fullName", text)}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#64748B"
+                    autoCapitalize="words"
+                  />
+                  {errors.fullName && (
+                    <Text style={styles.errorText}>{errors.fullName}</Text>
+                  )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={[styles.input, errors.email && styles.inputError]}
+                    value={formData.email}
+                    onChangeText={(text) => handleInputChange("email", text)}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#64748B"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                  {errors.email && (
+                    <Text style={styles.errorText}>{errors.email}</Text>
+                  )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Password</Text>
+                  <TextInput
+                    style={[styles.input, errors.password && styles.inputError]}
+                    value={formData.password}
+                    onChangeText={(text) => handleInputChange("password", text)}
+                    placeholder="Create a password"
+                    placeholderTextColor="#64748B"
+                    secureTextEntry
+                  />
+                  {errors.password && (
+                    <Text style={styles.errorText}>{errors.password}</Text>
+                  )}
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Confirm Password</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      errors.confirmPassword && styles.inputError,
+                    ]}
+                    value={formData.confirmPassword}
+                    onChangeText={(text) =>
+                      handleInputChange("confirmPassword", text)
+                    }
+                    placeholder="Confirm your password"
+                    placeholderTextColor="#64748B"
+                    secureTextEntry
+                  />
+                  {errors.confirmPassword && (
+                    <Text style={styles.errorText}>
+                      {errors.confirmPassword}
+                    </Text>
+                  )}
+                </View>
+                {/* --- END OF ADDED FORM INPUTS --- */}
+
                 <TouchableOpacity
                   style={[
                     styles.signupButton,
@@ -84,6 +187,7 @@ export default function SignupScreen() {
                     <Text style={styles.signupButtonText}>Create Account</Text>
                   )}
                 </TouchableOpacity>
+
                 <View style={styles.loginContainer}>
                   <Text style={styles.loginText}>
                     Already have an account?{" "}
@@ -111,7 +215,7 @@ export default function SignupScreen() {
   );
 }
 
-
+// Add the missing styles for validation feedback
 const styles = StyleSheet.create({
   container: {
     flex: 1,

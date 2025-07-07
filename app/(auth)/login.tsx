@@ -1,9 +1,21 @@
 // app/(auth)/login.tsx
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Linking, // <-- ADDED IMPORT
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AnimatedGradientBackground from '../../components/AnimatedGradientBackground';
+import AnimatedGradientBackground from "../../components/AnimatedGradientBackground";
 import { useAuth } from "../../context/AuthContext";
 
 export default function LoginScreen() {
@@ -19,7 +31,28 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      Alert.alert("Login Failed", result.message);
+      // --- MODIFIED ERROR HANDLING ---
+      // Check for the specific "Email not confirmed" error
+      if (result.message && result.message.includes("Email not confirmed")) {
+        Alert.alert(
+          "Confirm Your Email",
+          "Please check your inbox and follow the link to confirm your email address before signing in.",
+          [
+            {
+              text: "Open Email App",
+              onPress: () => Linking.openURL("mailto:"), // Opens the default mail client
+            },
+            {
+              text: "OK",
+              style: "cancel",
+            },
+          ]
+        );
+      } else {
+        // Show a generic error for other login failures
+        Alert.alert("Login Failed", result.message);
+      }
+      // --- END OF MODIFIED HANDLING ---
     }
     // NO router.push()! The layout handles navigation.
   };
@@ -28,31 +61,62 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <AnimatedGradientBackground>
         <SafeAreaView style={{ flex: 1 }}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardContainer} >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.keyboardContainer}
+          >
             <ScrollView contentContainerStyle={styles.scrollContainer}>
               <View style={styles.headerContainer}>
                 <Text style={styles.title}>Welcome Back</Text>
-                <Text style={styles.subtitle}>Sign in to continue tracking jobs</Text>
+                <Text style={styles.subtitle}>
+                  Sign in to continue tracking jobs
+                </Text>
               </View>
 
               <View style={styles.formContainer}>
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Email</Text>
-                  <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Enter your email" placeholderTextColor="#64748B" keyboardType="email-address" autoCapitalize="none" />
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter your email"
+                    placeholderTextColor="#64748B"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
                 </View>
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Password</Text>
-                  <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Enter your password" placeholderTextColor="#64748B" secureTextEntry />
+                  <TextInput
+                    style={styles.input}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#64748B"
+                    secureTextEntry
+                  />
                 </View>
 
-                <TouchableOpacity style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
-                  {isLoading ? <ActivityIndicator color="white" /> : <Text style={styles.loginButtonText}>Sign In</Text>}
+                <TouchableOpacity
+                  style={styles.loginButton}
+                  onPress={handleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Sign In</Text>
+                  )}
                 </TouchableOpacity>
 
                 <View style={styles.signupContainer}>
                   <Text style={styles.signupText}>Don't have an account? </Text>
-                  <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
+                  <TouchableOpacity
+                    onPress={() => router.push("/(auth)/signup")}
+                    disabled={isLoading}
+                  >
                     <Text style={styles.signupLink}>Create Account</Text>
                   </TouchableOpacity>
                 </View>
@@ -65,6 +129,7 @@ export default function LoginScreen() {
   );
 }
 
+// Styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -114,14 +179,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: "white",
-  },
-  forgotPassword: {
-    alignSelf: "flex-end",
-    marginBottom: 20,
-  },
-  forgotPasswordText: {
-    color: "#3B82F6",
-    fontSize: 14,
   },
   loginButton: {
     backgroundColor: "#3B82F6",

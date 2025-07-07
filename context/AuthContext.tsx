@@ -59,6 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const {
       data: { subscription },
     } = authService.onAuthStateChange(async (_event, session) => {
+      console.log("Auth state changed:", _event, session);
       if (session?.user) {
         const userProfile = await getUserProfile(session.user.id);
         setHasCompletedOnboarding(

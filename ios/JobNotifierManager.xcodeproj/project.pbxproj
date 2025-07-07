@@ -7,26 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		05E20CFBD15E48EC64E1BE2C /* libPods-JobNotifierManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 72A9713FAB1D2A10A1D19F5F /* libPods-JobNotifierManager.a */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		18A7BB8F9E354DD56072DDA0 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3AA79ECAE6575078AFE1D10 /* ExpoModulesProvider.swift */; };
+		2E6DBF8358D21DC2CF7F3E71 /* libPods-JobNotifierManager.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E8F2F10F6B9FB127DC3742D3 /* libPods-JobNotifierManager.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		A830B0374641B223D06FB962 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 05396012032606EC07582C86 /* PrivacyInfo.xcprivacy */; };
+		A289272D056B98E014183B54 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1FDAFD7E3714A0C895F7653E /* PrivacyInfo.xcprivacy */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
-		E26F2884018242797C7B900D /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F83C514CA0216C4B3562305 /* ExpoModulesProvider.swift */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		05396012032606EC07582C86 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = JobNotifierManager/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* JobNotifierManager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JobNotifierManager.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = JobNotifierManager/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = JobNotifierManager/Info.plist; sourceTree = "<group>"; };
-		2FA368F33F07219F3CB3CCC8 /* Pods-JobNotifierManager.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-JobNotifierManager.release.xcconfig"; path = "Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager.release.xcconfig"; sourceTree = "<group>"; };
-		72A9713FAB1D2A10A1D19F5F /* libPods-JobNotifierManager.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-JobNotifierManager.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		7F83C514CA0216C4B3562305 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-JobNotifierManager/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		1FDAFD7E3714A0C895F7653E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = JobNotifierManager/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		8D6BF4DC4CB2B8D9F4FB5445 /* Pods-JobNotifierManager.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-JobNotifierManager.debug.xcconfig"; path = "Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = JobNotifierManager/SplashScreen.storyboard; sourceTree = "<group>"; };
+		ACEC50477433E56237D7242F /* Pods-JobNotifierManager.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-JobNotifierManager.release.xcconfig"; path = "Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager.release.xcconfig"; sourceTree = "<group>"; };
+		B3AA79ECAE6575078AFE1D10 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-JobNotifierManager/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		E8CB8EC8795BCCF61DF9FD17 /* Pods-JobNotifierManager.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-JobNotifierManager.debug.xcconfig"; path = "Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager.debug.xcconfig"; sourceTree = "<group>"; };
+		E8F2F10F6B9FB127DC3742D3 /* libPods-JobNotifierManager.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-JobNotifierManager.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = JobNotifierManager/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* JobNotifierManager-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "JobNotifierManager-Bridging-Header.h"; path = "JobNotifierManager/JobNotifierManager-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,17 +37,17 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				05E20CFBD15E48EC64E1BE2C /* libPods-JobNotifierManager.a in Frameworks */,
+				2E6DBF8358D21DC2CF7F3E71 /* libPods-JobNotifierManager.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		004E1F5E44E8E46AAF7B49EB /* JobNotifierManager */ = {
+		0413853EA5F5B5CC5702EB2A /* JobNotifierManager */ = {
 			isa = PBXGroup;
 			children = (
-				7F83C514CA0216C4B3562305 /* ExpoModulesProvider.swift */,
+				B3AA79ECAE6575078AFE1D10 /* ExpoModulesProvider.swift */,
 			);
 			name = JobNotifierManager;
 			sourceTree = "<group>";
@@ -61,7 +61,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				05396012032606EC07582C86 /* PrivacyInfo.xcprivacy */,
+				1FDAFD7E3714A0C895F7653E /* PrivacyInfo.xcprivacy */,
 			);
 			name = JobNotifierManager;
 			sourceTree = "<group>";
@@ -70,9 +70,19 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				72A9713FAB1D2A10A1D19F5F /* libPods-JobNotifierManager.a */,
+				E8F2F10F6B9FB127DC3742D3 /* libPods-JobNotifierManager.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		6E2D808A286BEE1D50F017DE /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				8D6BF4DC4CB2B8D9F4FB5445 /* Pods-JobNotifierManager.debug.xcconfig */,
+				ACEC50477433E56237D7242F /* Pods-JobNotifierManager.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -89,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				C30A5D9513C680EF98D0DB50 /* Pods */,
-				F69B254D8EEEBB659FF9118C /* ExpoModulesProviders */,
+				6E2D808A286BEE1D50F017DE /* Pods */,
+				B1791DAB3480B571645CBF92 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -105,6 +115,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B1791DAB3480B571645CBF92 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				0413853EA5F5B5CC5702EB2A /* JobNotifierManager */,
+			);
+			name = ExpoModulesProviders;
+			sourceTree = "<group>";
+		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
 			isa = PBXGroup;
 			children = (
@@ -112,24 +130,6 @@
 			);
 			name = Supporting;
 			path = JobNotifierManager/Supporting;
-			sourceTree = "<group>";
-		};
-		C30A5D9513C680EF98D0DB50 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				E8CB8EC8795BCCF61DF9FD17 /* Pods-JobNotifierManager.debug.xcconfig */,
-				2FA368F33F07219F3CB3CCC8 /* Pods-JobNotifierManager.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
-		F69B254D8EEEBB659FF9118C /* ExpoModulesProviders */ = {
-			isa = PBXGroup;
-			children = (
-				004E1F5E44E8E46AAF7B49EB /* JobNotifierManager */,
-			);
-			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "JobNotifierManager" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				97D4228E7584B2E1486BC3B6 /* [Expo] Configure project */,
+				24C41ABAB20D21CBC3C59415 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				E9E5D7D776E0D975935F200D /* [CP] Embed Pods Frameworks */,
+				32787471A3895628DE8AE259 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				A830B0374641B223D06FB962 /* PrivacyInfo.xcprivacy in Resources */,
+				A289272D056B98E014183B54 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -240,6 +240,43 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		24C41ABAB20D21CBC3C59415 /* [Expo] Configure project */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[Expo] Configure project";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-JobNotifierManager/expo-configure-project.sh\"\n";
+		};
+		32787471A3895628DE8AE259 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -280,43 +317,6 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		97D4228E7584B2E1486BC3B6 /* [Expo] Configure project */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[Expo] Configure project";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-JobNotifierManager/expo-configure-project.sh\"\n";
-		};
-		E9E5D7D776E0D975935F200D /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-JobNotifierManager/Pods-JobNotifierManager-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -325,7 +325,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				E26F2884018242797C7B900D /* ExpoModulesProvider.swift in Sources */,
+				18A7BB8F9E354DD56072DDA0 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -334,7 +334,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E8CB8EC8795BCCF61DF9FD17 /* Pods-JobNotifierManager.debug.xcconfig */;
+			baseConfigurationReference = 8D6BF4DC4CB2B8D9F4FB5445 /* Pods-JobNotifierManager.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -370,7 +370,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2FA368F33F07219F3CB3CCC8 /* Pods-JobNotifierManager.release.xcconfig */;
+			baseConfigurationReference = ACEC50477433E56237D7242F /* Pods-JobNotifierManager.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

@@ -3,11 +3,10 @@ import { AuthResponse, SignUpData } from '../types';
 import { supabase } from './supabase';
 
 class AuthService {
-  // --- SIMPLIFIED AND FIXED ---
-  // The database trigger now handles creating the user profile.
+  // The database trigger handles creating the user profile.
   async signUp({ email, password, full_name, options }: SignUpData): Promise<AuthResponse> {
     try {
-      // We now pass the full_name in the options metadata,
+      // We pass the full_name in the options metadata,
       // so our database trigger can use it.
       const { data, error } = await supabase.auth.signUp({
         email: email.toLowerCase(),
@@ -28,32 +27,21 @@ class AuthService {
         return { success: false, message: 'Signup failed. Please try again.' };
       }
       
-      // We no longer need to manually insert into the 'users' table.
-      // The trigger does it for us! The user object returned here is from auth.
+      // FIX: Return the user object directly from the auth response.
+      // Do NOT try to build it manually. This is the key change.
+      // The onAuthStateChange listener will fetch the full profile from the `users` table later.
       return {
         success: true,
         message: 'Account created successfully! Please check your email to verify your account.',
-        user: {
-          id: data.user.id,
-          email: data.user.email ?? '',
-          created_at: data.user.created_at ?? '', // Add fallback if undefined
-          updated_at: data.user.updated_at ?? '', // Add fallback if undefined
-          // Add other fields as required by your User type
-          full_name: data.user.user_metadata?.full_name ?? ''
-        },
+        user: data.user,
       };
 
     } catch (error) {
       console.error('Sign up error:', error);
-      return {
-        success: false,
-        message: 'An unexpected error occurred.',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+      return { success: false, message, error: message };
     }
   }
-
-  // --- NO CHANGES NEEDED BELOW THIS LINE ---
 
   async signIn({ email, password }: { email: string, password: string }): Promise<AuthResponse> {
     try {
@@ -63,31 +51,31 @@ class AuthService {
       });
 
       if (authError) {
-        return {
-          success: false,
-          message: authError.message,
-          error: authError.message,
-        };
+        return { success: false, message: authError.message };
       }
       if (!authData.user) {
         return { success: false, message: 'Invalid email or password.' };
       }
       
-      // Get user profile - This now correctly fetches the profile created by the trigger.
+      // This is correct: after signing in, we fetch the full profile.
       const { data: userProfile } = await supabase
         .from('users')
         .select('*')
         .eq('id', authData.user.id)
         .single();
       
-      return { success: true, message: 'Welcome back!', user: userProfile };
+      // If the profile doesn't exist for some reason, we can still succeed
+      // but the `user` in the context might be minimal.
+      if (!userProfile) {
+         console.warn("User signed in, but no public profile found. The trigger might be missing.");
+      }
+
+      return { success: true, message: 'Welcome back!', user: userProfile || authData.user };
+
     } catch (error) {
       console.error('Sign in error:', error);
-      return {
-        success: false,
-        message: 'An unexpected error occurred. Please try again.',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+      return { success: false, message, error: message };
     }
   }
 

@@ -152,6 +152,13 @@ export interface UserProfile {
   // Add any other fields relevant to your user profile
 }
 
+export interface SignUpData {
+  email: string;
+  password: string;
+  full_name?: string;
+  options?: any; // Add the options property, type as needed (e.g., SupabaseSignUpOptions)
+}
+
 // Database types for Supabase
 export interface Database {
   public: {

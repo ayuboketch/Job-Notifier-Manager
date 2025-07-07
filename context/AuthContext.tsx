@@ -1,4 +1,6 @@
 // context/AuthContext.tsx
+import Linking from "expo-linking";
+//import { Linking } from "expo-linking";
 import React, {
   createContext,
   ReactNode,
@@ -7,10 +9,10 @@ import React, {
   useState,
 } from "react";
 import { authService } from "../lib/authService";
-import { getUserProfile, supabase } from "../lib/supabase"; // Assuming supabase is exported from here
-import { AuthState } from "../types"; // Make sure UserProfile is exported from types
+import { getUserProfile, supabase } from "../lib/supabase";
+import { AuthState } from "../types";
 
-// 1. ADD ONBOARDING STATUS TO THE CONTEXT TYPE
+// --- NO CHANGES TO INTERFACES ---
 interface AuthContextType extends AuthState {
   hasCompletedOnboarding: boolean;
   updateOnboardingStatus: () => Promise<void>;
@@ -49,17 +51,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session: null,
     loading: true,
   });
-  // 2. ADD ONBOARDING STATE
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   useEffect(() => {
+    // This is the single source of truth for auth state changes. Perfect.
     initializeAuth();
     const {
       data: { subscription },
     } = authService.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         const userProfile = await getUserProfile(session.user.id);
-        // 3. CHECK ONBOARDING STATUS WHEN AUTH STATE CHANGES
         setHasCompletedOnboarding(
           session.user.user_metadata?.has_completed_onboarding === true
         );
@@ -75,77 +76,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const initializeAuth = async () => {
-    try {
-      const session = await authService.getCurrentSession();
-      if (session?.user) {
-        const userProfile = await getUserProfile(session.user.id);
-        // 4. CHECK ONBOARDING STATUS ON INITIAL LOAD
-        setHasCompletedOnboarding(
-          session.user.user_metadata?.has_completed_onboarding === true
-        );
-        setAuthState({ user: userProfile, session, loading: false });
-      } else {
-        setAuthState({ user: null, session: null, loading: false });
-      }
-    } catch (error) {
-      console.error("Error initializing auth:", error);
+    // This initial load logic is correct.
+    const session = await authService.getCurrentSession();
+    if (session?.user) {
+      const userProfile = await getUserProfile(session.user.id);
+      setHasCompletedOnboarding(
+        session.user.user_metadata?.has_completed_onboarding === true
+      );
+      setAuthState({ user: userProfile, session, loading: false });
+    } else {
       setAuthState({ user: null, session: null, loading: false });
     }
   };
 
-  // 5. IMPLEMENT THE FUNCTION TO UPDATE ONBOARDING STATUS
   const updateOnboardingStatus = async () => {
+    // Your onboarding logic is correct.
     if (!authState.user) return;
     const { data, error } = await supabase.auth.updateUser({
       data: { has_completed_onboarding: true },
     });
-    if (data.user) {
-      setHasCompletedOnboarding(true);
-      // Optionally update local user state if needed
-      if (authState.user) {
-        const updatedUserProfile = await getUserProfile(authState.user.id);
-        setAuthState((prev) => ({
-          ...prev,
-          user: updatedUserProfile,
-        }));
-      }
-    }
     if (error)
       console.error("Error updating onboarding status:", error.message);
+    if (data.user) {
+      setHasCompletedOnboarding(true);
+    }
   };
 
+  // --- SIMPLIFIED signIn ---
+  // We let onAuthStateChange handle the state update.
   const signIn = async (email: string, password: string) => {
-    // Your existing signIn function is fine
     const result = await authService.signIn({ email, password });
-    if (result.success && result.user) {
-      const userProfile = await getUserProfile(result.user.id);
-      setHasCompletedOnboarding(
-        (result.user as any).user_metadata?.has_completed_onboarding === true
-      );
-      // Fetch the current session after successful sign-in
-      const session = await authService.getCurrentSession();
-      setAuthState({
-        user: userProfile,
-        session: session ?? null,
-        loading: false,
-      });
-    }
     return { success: result.success, message: result.message };
   };
 
+  // --- NO CHANGES NEEDED for signUp ---
+  // This correctly creates the deep link and passes data to the service.
   const signUp = async (email: string, password: string, fullName?: string) => {
-    // 6. MODIFY SIGNUP TO INCLUDE METADATA
+    const redirectUrl = Linking.createURL("/(auth)/verify");
     const result = await authService.signUp({
       email,
       password,
       full_name: fullName,
-      options: { data: { has_completed_onboarding: false } },
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: { has_completed_onboarding: false },
+      },
     });
     return { success: result.success, message: result.message };
   };
 
   const signOut = async () => {
     await authService.signOut();
+    // onAuthStateChange will clear the state. We can clear it here too
+    // for an instant UI update.
     setAuthState({ user: null, session: null, loading: false });
     setHasCompletedOnboarding(false);
   };

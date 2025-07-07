@@ -17,6 +17,7 @@ export default {
     },
 
     ios: {
+      bundleIdentifier: "com.anonymous.jobnotifiermanager",
       supportsTablet: true,
       statusBarStyle: "light",
     },

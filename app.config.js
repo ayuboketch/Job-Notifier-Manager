@@ -22,6 +22,7 @@ export default {
     },
 
     android: {
+      package: "com.anonymous.jobnotifiermanager",
       adaptiveIcon: {
         foregroundImage: "./assets/images/Job-Notifier-Manager.png",
         backgroundColor: "#ffffff",

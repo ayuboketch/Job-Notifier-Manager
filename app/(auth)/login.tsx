@@ -4,8 +4,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Linking, // <-- ADDED IMPORT
+  KeyboardAvoidingView, // <-- ADDED IMPORT
   Platform,
   ScrollView,
   StyleSheet,
@@ -31,30 +30,18 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (!result.success) {
-      // --- MODIFIED ERROR HANDLING ---
-      // Check for the specific "Email not confirmed" error
-      if (result.message && result.message.includes("Email not confirmed")) {
+      // Check for the specific "Email not confirmed" error message from Supabase
+      if (result.message.includes("Email not confirmed")) {
         Alert.alert(
-          "Confirm Your Email",
-          "Please check your inbox and follow the link to confirm your email address before signing in.",
-          [
-            {
-              text: "Open Email App",
-              onPress: () => Linking.openURL("mailto:"), // Opens the default mail client
-            },
-            {
-              text: "OK",
-              style: "cancel",
-            },
-          ]
+          "Email Not Confirmed",
+          "Please check your inbox and click the verification link before signing in."
         );
       } else {
-        // Show a generic error for other login failures
+        // Show other errors normally
         Alert.alert("Login Failed", result.message);
       }
-      // --- END OF MODIFIED HANDLING ---
     }
-    // NO router.push()! The layout handles navigation.
+    // No router.push()! The root layout handles navigation.
   };
 
   return (

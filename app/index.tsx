@@ -24,7 +24,6 @@ export default function AuthHomeScreen() {
               Never miss your dream job again.
             </Text>
           </View>
-          <DebugSupabase />
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity

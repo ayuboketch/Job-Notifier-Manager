@@ -53,43 +53,52 @@ export default function SignupScreen() {
       newErrors.confirmPassword = "Passwords do not match.";
 
     setErrors(newErrors);
+    console.log("🔍 Validation Errors:", newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSignup = async () => {
-    if (!validateForm()) return;
+    console.log("🚀 Starting signup with data:", formData);
+
+    if (!validateForm()) {
+      console.log("⛔ Form validation failed.");
+      return;
+    }
 
     setIsLoading(true);
-    const result = await signUp(
-      formData.email,
-      formData.password,
-      formData.fullName
-    );
-    setIsLoading(false);
+    try {
+      const result = await signUp(
+        formData.email,
+        formData.password,
+        formData.fullName
+      );
 
-    if (result.success) {
-      setShowVerificationPrompt(true);
-    } else {
-      // Check for the specific "user already exists" error message from Supabase
-      if (result.message.includes("User already registered")) {
-        Alert.alert(
-          "Account Exists",
-          "This email already has an associated account, please log in.",
-          [
-            {
-              text: "Go to Login",
-              onPress: () => router.push("/(auth)/login"),
-            },
-            {
-              text: "Cancel",
-              style: "cancel",
-            },
-          ]
-        );
+      console.log("✅ Signup result:", result);
+      setIsLoading(false);
+
+      if (result.success) {
+        setShowVerificationPrompt(true);
       } else {
-        // Show any other errors normally
-        Alert.alert("Signup Failed", result.message);
+        if (result.message.includes("User already registered")) {
+          Alert.alert(
+            "Account Exists",
+            "This email already has an associated account, please log in.",
+            [
+              {
+                text: "Go to Login",
+                onPress: () => router.push("/(auth)/login"),
+              },
+              { text: "Cancel", style: "cancel" },
+            ]
+          );
+        } else {
+          Alert.alert("Signup Failed", result.message);
+        }
       }
+    } catch (error) {
+      console.error("❌ Unexpected error during signup:", error);
+      Alert.alert("Error", "Something went wrong. Please try again.");
+      setIsLoading(false);
     }
   };
 
@@ -140,7 +149,6 @@ export default function SignupScreen() {
                   Start tracking your dream jobs today
                 </Text>
               </View>
-
               <View style={styles.formContainer}>
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Full Name</Text>
@@ -253,45 +261,19 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#141a1f",
-  },
-  keyboardContainer: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: "#141a1f" },
+  keyboardContainer: { flex: 1 },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: 24,
   },
-  headerContainer: {
-    paddingBottom: 40,
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#CBD5E1",
-    textAlign: "center",
-  },
-  formContainer: {
-    flex: 1,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-    marginBottom: 8,
-  },
+  headerContainer: { paddingBottom: 40, alignItems: "center" },
+  title: { fontSize: 32, fontWeight: "bold", color: "white", marginBottom: 8 },
+  subtitle: { fontSize: 16, color: "#CBD5E1", textAlign: "center" },
+  formContainer: { flex: 1 },
+  inputContainer: { marginBottom: 20 },
+  label: { fontSize: 16, fontWeight: "600", color: "white", marginBottom: 8 },
   input: {
     backgroundColor: "#1E293B",
     borderWidth: 1,
@@ -302,16 +284,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "white",
   },
-  inputError: {
-    borderColor: "#EF4444",
-    borderWidth: 2,
-  },
-  errorText: {
-    color: "#EF4444",
-    fontSize: 14,
-    marginTop: 4,
-    marginLeft: 4,
-  },
+  inputError: { borderColor: "#EF4444", borderWidth: 2 },
+  errorText: { color: "#EF4444", fontSize: 14, marginTop: 4, marginLeft: 4 },
   signupButton: {
     backgroundColor: "#3B82F6",
     paddingVertical: 16,
@@ -321,32 +295,17 @@ const styles = StyleSheet.create({
     marginTop: 20,
     minHeight: 52,
   },
-  signupButtonDisabled: {
-    backgroundColor: "#64748B",
-  },
-  signupButtonText: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  signupButtonDisabled: { backgroundColor: "#64748B" },
+  signupButtonText: { color: "white", fontSize: 18, fontWeight: "bold" },
   loginContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     marginTop: 24,
   },
-  loginText: {
-    color: "#CBD5E1",
-    fontSize: 16,
-  },
-  loginLink: {
-    color: "#3B82F6",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  linkDisabled: {
-    color: "#64748B",
-  },
+  loginText: { color: "#CBD5E1", fontSize: 16 },
+  loginLink: { color: "#3B82F6", fontSize: 16, fontWeight: "600" },
+  linkDisabled: { color: "#64748B" },
   verificationContainer: {
     flex: 1,
     justifyContent: "center",

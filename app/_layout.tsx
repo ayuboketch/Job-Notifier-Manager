@@ -19,7 +19,7 @@ function RootLayoutNav() {
     // Hide the splash screen once we have the auth state
     SplashScreen.hideAsync();
 
-    const inAuthFlow = segments[0] === "(auth)" || segments[0] === "index";
+    const inAuthFlow = segments[0] === "(auth)";
     const onOnboardingScreen = segments[0] === "onboarding";
 
     if (user && hasCompletedOnboarding) {

@@ -1,37 +1,26 @@
 // app/(auth)/verify.tsx
-import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { useAuth } from "../../context/AuthContext";
+import { SafeAreaView } from "react-native-safe-area-context";
+import AnimatedGradientBackground from "../../components/AnimatedGradientBackground";
+
+// This screen shows a simple loading state for email verification
+// The main app layout will handle the actual navigation logic
 
 export default function VerifyScreen() {
-  const { session } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    // When the user clicks the link, the app opens here. The Supabase client
-    // automatically handles the token from the URL and establishes a session.
-    // The `onAuthStateChange` listener in your AuthContext detects this new session.
-    // Your root layout `(auth)/_layout.tsx` will then see `session` is no longer null
-    // and automatically redirect to the `(app)` group.
-
-    // We can add a fallback here for robustness. If a session is active after a
-    // short delay, we manually redirect.
-    if (session) {
-      const timer = setTimeout(() => {
-        router.replace("/(app)/dashboard"); // Or your main dashboard route
-      }, 500); // A small delay to feel natural
-
-      return () => clearTimeout(timer); // Cleanup timer
-    }
-  }, [session, router]);
-
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#3B82F6" />
-      <Text style={styles.text}>
-        Finalizing your verification, one moment...
-      </Text>
+      <AnimatedGradientBackground>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.content}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text style={styles.text}>Verifying your email...</Text>
+            <Text style={styles.subText}>
+              Please wait while we confirm your account
+            </Text>
+          </View>
+        </SafeAreaView>
+      </AnimatedGradientBackground>
     </View>
   );
 }
@@ -39,15 +28,28 @@ export default function VerifyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#141a1f",
+  },
+  safeArea: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#141a1f",
+    paddingHorizontal: 24,
   },
   text: {
     color: "white",
-    marginTop: 20,
     fontSize: 18,
+    marginTop: 20,
     textAlign: "center",
-    paddingHorizontal: 20,
+    fontWeight: "600",
+  },
+  subText: {
+    color: "#CBD5E1",
+    fontSize: 14,
+    marginTop: 8,
+    textAlign: "center",
   },
 });

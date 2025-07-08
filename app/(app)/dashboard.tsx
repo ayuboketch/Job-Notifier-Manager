@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AddCompanyModal from "../../components/AddCompanyModal";
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.88:3000/api";
@@ -45,6 +46,7 @@ type Job = {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { signOut } = useAuth();
   const [trackedCompanies, setTrackedCompanies] = useState<Company[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
@@ -83,7 +85,8 @@ export default function DashboardScreen() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await signOut();
     router.push("/");
   };
 

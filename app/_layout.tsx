@@ -1,77 +1,56 @@
 // app/_layout.tsx
-import { Slot, useRouter, useSegments } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { Redirect, SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../context/AuthContext";
-import "../global.css";
 
-const InitialLayout = () => {
-  const { session, hasCompletedOnboarding, loading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
+// Keep the splash screen visible until we are ready to render
+SplashScreen.preventAutoHideAsync();
+
+function RootLayoutNav() {
+  const { user, loading, hasCompletedOnboarding } = useAuth();
 
   useEffect(() => {
-    // Wait until the auth state is fully loaded before making decisions
-    if (loading) {
-      return;
+    // When the auth state is done loading, hide the splash screen.
+    if (!loading) {
+      SplashScreen.hideAsync();
     }
+  }, [loading]);
 
-    const inAppGroup = segments[0] === "(app)";
-
-    if (session) {
-      // User is logged in
-      if (hasCompletedOnboarding) {
-        // SCENARIO: Returning user, already onboarded.
-        // ACTION: Go to the main app dashboard.
-        if (!inAppGroup) {
-          router.replace("/(app)/dashboard");
-        }
-      } else {
-        // SCENARIO: New user, just signed up/logged in for the first time.
-        // ACTION: Go to the onboarding slides.
-        router.replace("/onboarding");
-      }
-    } else {
-      // SCENARIO: User is not logged in.
-      // ACTION: Stay in the auth flow (or be sent to the auth home screen).
-      // If they were somehow in the app, kick them out.
-      if (inAppGroup) {
-        router.replace("/");
-      }
-    }
-  }, [session, hasCompletedOnboarding, loading]); // Dependencies that trigger this check
-
-  // While loading auth state, show a spinner.
+  // If we are still loading the auth state, render nothing.
+  // The native splash screen will be visible.
   if (loading) {
+    return null;
+  }
+
+  // --- This is the core logic for your user flows ---
+
+  // Flow 1 & 2 (No Session): User is NOT logged in.
+  // We let them stay on the screens in the root directory (index.tsx)
+  // and the (auth) group. No redirect is needed.
+  if (!user) {
     return (
-      <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#3B82F6" />
-      </View>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+      </Stack>
     );
   }
 
-  // Once loaded, show the screen determined by the logic above.
-  return <Slot />;
-};
+  // Flow 1 & 2 (After Login, Before Onboarding): User IS logged in
+  // but HAS NOT completed onboarding. Redirect to the onboarding screen.
+  if (!hasCompletedOnboarding) {
+    return <Redirect href="/onboarding" />;
+  }
+
+  // Flow 3 (Returning User): User IS logged in and HAS completed
+  // onboarding. Redirect to the main app dashboard.
+  return <Redirect href="/(app)/dashboard" />;
+}
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <StatusBar style="light" />
-        <InitialLayout />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loader: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#141a1f",
-  },
-});

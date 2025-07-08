@@ -1,6 +1,5 @@
 // context/AuthContext.tsx
-import Linking from "expo-linking";
-//import { Linking } from "expo-linking";
+import { Session, User } from "@supabase/supabase-js";
 import React, {
   createContext,
   ReactNode,
@@ -8,14 +7,18 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { authService } from "../lib/authService";
-import { getUserProfile, supabase } from "../lib/supabase";
-import { AuthState } from "../types";
+import { supabase } from "../lib/supabase";
 
-// --- NO CHANGES TO INTERFACES ---
-interface AuthContextType extends AuthState {
+export interface UserProfile extends User {
+  full_name: string | null;
+  has_completed_onboarding: boolean;
+}
+
+interface AuthContextType {
+  session: Session | null;
+  user: UserProfile | null;
+  loading: boolean;
   hasCompletedOnboarding: boolean;
-  updateOnboardingStatus: () => Promise<void>;
   signIn: (
     email: string,
     password: string
@@ -23,129 +26,171 @@ interface AuthContextType extends AuthState {
   signUp: (
     email: string,
     password: string,
-    fullName?: string
+    fullName: string
   ) => Promise<{ success: boolean; message: string }>;
   signOut: () => Promise<void>;
-  resetPassword: (
-    email: string
-  ) => Promise<{ success: boolean; message: string }>;
+  updateOnboardingStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    session: null,
-    loading: true,
-  });
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
+  const fetchUserProfile = async (
+    userId: string
+  ): Promise<UserProfile | null> => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching user profile:", error.message);
+      return null;
+    }
+    return data as UserProfile;
+  };
+
   useEffect(() => {
-    // This is the single source of truth for auth state changes. Perfect.
-    initializeAuth();
+    const fetchAndSetSession = async () => {
+      // 1. Get the initial session
+      const {
+        data: { session: initialSession },
+      } = await supabase.auth.getSession();
+
+      // 2. If a session exists, fetch its profile
+      if (initialSession?.user) {
+        const profile = await fetchUserProfile(initialSession.user.id);
+        setSession(initialSession);
+        setUser(profile);
+        setHasCompletedOnboarding(
+          profile?.user_metadata?.has_completed_onboarding === true
+        );
+      }
+
+      // 3. We are done loading
+      setLoading(false);
+    };
+
+    fetchAndSetSession();
+
+    // 4. Listen for future auth changes
     const {
       data: { subscription },
-    } = authService.onAuthStateChange(async (_event, session) => {
-      console.log("Auth state changed:", _event, session);
-      if (session?.user) {
-        const userProfile = await getUserProfile(session.user.id);
+    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      setSession(newSession);
+      if (newSession?.user) {
+        const profile = await fetchUserProfile(newSession.user.id);
+        setUser(profile);
         setHasCompletedOnboarding(
-          session.user.user_metadata?.has_completed_onboarding === true
+          profile?.user_metadata?.has_completed_onboarding === true
         );
-        setAuthState({ user: userProfile, session, loading: false });
       } else {
+        setUser(null);
         setHasCompletedOnboarding(false);
-        setAuthState({ user: null, session: null, loading: false });
       }
     });
+
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
 
-  const initializeAuth = async () => {
-    // This initial load logic is correct.
-    const session = await authService.getCurrentSession();
-    if (session?.user) {
-      const userProfile = await getUserProfile(session.user.id);
-      setHasCompletedOnboarding(
-        session.user.user_metadata?.has_completed_onboarding === true
-      );
-      setAuthState({ user: userProfile, session, loading: false });
-    } else {
-      setAuthState({ user: null, session: null, loading: false });
+  const signUp = async (email: string, password: string, fullName: string) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            has_completed_onboarding: false,
+          },
+        },
+      });
+
+      if (error) {
+        return { success: false, message: error.message };
+      }
+      return {
+        success: true,
+        message: "Please check your email to verify your account.",
+      };
+    } catch (e: any) {
+      return {
+        success: false,
+        message: e.message || "An unexpected error occurred.",
+      };
     }
   };
 
-  const updateOnboardingStatus = async () => {
-    // Your onboarding logic is correct.
-    if (!authState.user) return;
-    const { data, error } = await supabase.auth.updateUser({
-      data: { has_completed_onboarding: true },
-    });
-    if (error)
-      console.error("Error updating onboarding status:", error.message);
-    if (data.user) {
-      setHasCompletedOnboarding(true);
-    }
-  };
-
-  // --- SIMPLIFIED signIn ---
-  // We let onAuthStateChange handle the state update.
   const signIn = async (email: string, password: string) => {
-    const result = await authService.signIn({ email, password });
-    return { success: result.success, message: result.message };
-  };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
+      });
 
-  // --- NO CHANGES NEEDED for signUp ---
-  // This correctly creates the deep link and passes data to the service.
-  const signUp = async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = Linking.createURL("/(auth)/verify");
-    const result = await authService.signUp({
-      email,
-      password,
-      full_name: fullName,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: { has_completed_onboarding: false },
-      },
-    });
-    return { success: result.success, message: result.message };
+      if (error) return { success: false, message: error.message };
+      return { success: true, message: "Signed in successfully!" };
+    } catch (e: any) {
+      return {
+        success: false,
+        message: e.message || "An unexpected error occurred.",
+      };
+    }
   };
 
   const signOut = async () => {
-    await authService.signOut();
-    // onAuthStateChange will clear the state. We can clear it here too
-    // for an instant UI update.
-    setAuthState({ user: null, session: null, loading: false });
-    setHasCompletedOnboarding(false);
+    await supabase.auth.signOut();
   };
 
-  const resetPassword = async (email: string) => {
-    return authService.resetPassword(email);
+  const updateOnboardingStatus = async () => {
+    if (!user) return;
+    try {
+      const { error: authUserError } = await supabase.auth.updateUser({
+        data: { has_completed_onboarding: true },
+      });
+      if (authUserError) throw authUserError;
+
+      // Also update our public table if we need to query it elsewhere
+      const { error: profileError } = await supabase
+        .from("users")
+        .update({ has_completed_onboarding: true })
+        .eq("id", user.id);
+      if (profileError) throw profileError;
+
+      // Update local state immediately to trigger redirect
+      setHasCompletedOnboarding(true);
+    } catch (error: any) {
+      console.error("Error updating onboarding status:", error.message);
+    }
   };
 
   const value: AuthContextType = {
-    ...authState,
+    session,
+    user,
+    loading,
     hasCompletedOnboarding,
-    updateOnboardingStatus,
     signIn,
     signUp,
     signOut,
-    resetPassword,
+    updateOnboardingStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

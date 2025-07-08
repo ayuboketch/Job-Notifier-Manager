@@ -9,7 +9,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput, // <-- ADDED IMPORT
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -27,20 +27,18 @@ export default function SignupScreen() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showVerificationPrompt, setShowVerificationPrompt] = useState(false);
   const router = useRouter();
   const { signUp } = useAuth();
 
-  // ADDED: Function to handle input changes
   const handleInputChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
-    // Clear the error for this field when the user starts typing
     if (errors[name]) {
       const { [name]: removed, ...rest } = errors;
       setErrors(rest);
     }
   };
 
-  // ADDED: Form validation function
   const validateForm = () => {
     const newErrors: FormErrors = {};
     if (!formData.fullName.trim())
@@ -59,7 +57,7 @@ export default function SignupScreen() {
   };
 
   const handleSignup = async () => {
-    if (!validateForm()) return; // <-- Validation check enabled
+    if (!validateForm()) return;
 
     setIsLoading(true);
     const result = await signUp(
@@ -70,22 +68,68 @@ export default function SignupScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      Alert.alert(
-        "Success!",
-        "Please check your email to verify your account."
-      );
-      // Optional: Clear form on success
-      setFormData({
-        email: "",
-        password: "",
-        confirmPassword: "",
-        fullName: "",
-      });
+      setShowVerificationPrompt(true);
     } else {
-      Alert.alert("Signup Failed", result.message);
+      // Check for the specific "user already exists" error message
+      if (result.message.includes("User already registered")) {
+        Alert.alert(
+          "Account Exists",
+          "This email already has an account. Would you like to log in instead?",
+          [
+            {
+              text: "Go to Login",
+              onPress: () => router.push("/(auth)/login"),
+            },
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+          ]
+        );
+      } else {
+        // Show other errors normally
+        Alert.alert("Signup Failed", result.message);
+      }
     }
-    // NO router.push()! The layout will handle navigation after verification.
   };
+
+  const handleBackToLogin = () => {
+    setShowVerificationPrompt(false);
+    // Clear form before navigating
+    setFormData({
+      email: "",
+      password: "",
+      confirmPassword: "",
+      fullName: "",
+    });
+    router.push("/(auth)/login");
+  };
+
+  if (showVerificationPrompt) {
+    return (
+      <View style={styles.container}>
+        <AnimatedGradientBackground>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={styles.verificationContainer}>
+              <View style={styles.verificationContent}>
+                <Text style={styles.verificationTitle}>Check Your Email</Text>
+                <Text style={styles.verificationText}>
+                  We've sent a verification link to your inbox. Please click the
+                  link to activate your account, then return here to log in.
+                </Text>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={handleBackToLogin}
+                >
+                  <Text style={styles.backButtonText}>Go to Login</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </SafeAreaView>
+        </AnimatedGradientBackground>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -104,7 +148,6 @@ export default function SignupScreen() {
               </View>
 
               <View style={styles.formContainer}>
-                {/* --- ADDED FORM INPUTS --- */}
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Full Name</Text>
                   <TextInput
@@ -172,7 +215,6 @@ export default function SignupScreen() {
                     </Text>
                   )}
                 </View>
-                {/* --- END OF ADDED FORM INPUTS --- */}
 
                 <TouchableOpacity
                   style={[
@@ -216,7 +258,6 @@ export default function SignupScreen() {
   );
 }
 
-// Add the missing styles for validation feedback
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -227,10 +268,10 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
+    justifyContent: "center",
     paddingHorizontal: 24,
   },
   headerContainer: {
-    paddingTop: 40,
     paddingBottom: 40,
     alignItems: "center",
   },
@@ -311,5 +352,46 @@ const styles = StyleSheet.create({
   },
   linkDisabled: {
     color: "#64748B",
+  },
+  verificationContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  verificationContent: {
+    backgroundColor: "#1E293B",
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#334155",
+  },
+  verificationTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  verificationText: {
+    fontSize: 16,
+    color: "#CBD5E1",
+    textAlign: "center",
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  backButton: {
+    backgroundColor: "#3B82F6",
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    minWidth: 200,
+  },
+  backButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });

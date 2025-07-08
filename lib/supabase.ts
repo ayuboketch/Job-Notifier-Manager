@@ -1,8 +1,9 @@
 // lib/supabase.ts
-import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import 'react-native-url-polyfill/auto';
 import { Database } from '../types'; // Assuming this path is correct after moving the folder
+
 
 // Load variables using the standard process.env method for Expo
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;

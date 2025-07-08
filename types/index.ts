@@ -1,7 +1,7 @@
 // types/index.ts
 export interface User {
   id: string;
-  email: string;
+  email?: string; // <-- allow undefined
   full_name?: string;
   avatar_url?: string;
   created_at: string;
@@ -212,4 +212,3 @@ export type ScheduleFunction = (
   options?: ScheduleOptions
 ) => ScheduledTask;
 
-// Remove the invalid export assignment and closing brace

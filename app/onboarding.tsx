@@ -1,6 +1,7 @@
 // app/onboarding.tsx
 import React, { useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   StyleSheet,
@@ -40,14 +41,17 @@ const slides = [
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isUpdating, setIsUpdating] = useState(false); // Add loading state
   const carouselRef = useRef<ICarouselInstance>(null);
   const { updateOnboardingStatus } = useAuth();
 
   const handleGetStarted = async () => {
-    // This function tells our AuthContext to update the user's status in Supabase.
-    // The "gatekeeper" in _layout.tsx will see this change and automatically
-    // navigate to the dashboard. We don't need to navigate here.
+    if (isUpdating) return; // Prevent multiple clicks
+    setIsUpdating(true);
     await updateOnboardingStatus();
+    // No need to navigate here, the root layout will handle it.
+    // The loading state is mostly for UX in case of a slow network.
+    setIsUpdating(false);
   };
 
   return (
@@ -99,14 +103,21 @@ export default function OnboardingScreen() {
           <View style={styles.buttonContainer}>
             {currentIndex === slides.length - 1 ? (
               <TouchableOpacity
-                style={styles.getStartedButton}
+                style={[
+                  styles.getStartedButton,
+                  isUpdating && styles.buttonDisabled,
+                ]}
                 onPress={handleGetStarted}
+                disabled={isUpdating}
               >
-                <Text style={styles.getStartedButtonText}>Get Started</Text>
+                {isUpdating ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.getStartedButtonText}>Get Started</Text>
+                )}
               </TouchableOpacity>
             ) : (
               <View style={styles.navigationContainer}>
-                {/* FIX: Call the carousel's next() method via its ref */}
                 <TouchableOpacity
                   style={styles.nextButton}
                   onPress={() => carouselRef.current?.next()}
@@ -121,8 +132,6 @@ export default function OnboardingScreen() {
     </View>
   );
 }
-
-// Your full styles object here
 
 const styles = StyleSheet.create({
   container: {
@@ -188,6 +197,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+    minHeight: 54,
+  },
+  buttonDisabled: {
+    backgroundColor: "#64748B",
   },
   getStartedButtonText: {
     color: "white",
@@ -197,21 +211,13 @@ const styles = StyleSheet.create({
   navigationContainer: {
     alignItems: "center",
   },
-  skipButton: {
-    marginTop: 12,
-  },
-  skipButtonText: {
-    color: "#64748B",
-    fontWeight: "400",
-    textAlign: "center",
-    fontSize: 14,
-  },
   nextButton: {
     backgroundColor: "#475569",
     paddingVertical: 16,
     paddingHorizontal: 48,
     borderRadius: 12,
     width: "100%",
+    alignItems: "center",
   },
   nextButtonText: {
     color: "white",

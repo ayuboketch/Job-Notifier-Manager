@@ -2,8 +2,6 @@
 
 import dotenv from 'dotenv';
 import path from 'path';
-// FINAL FIX: Use a more reliable path construction relative to the current file.
-// This goes from `dist/index.js` up one level to `dist` and then up another to the project root.
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 

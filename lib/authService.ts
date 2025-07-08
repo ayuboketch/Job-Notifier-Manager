@@ -33,7 +33,10 @@ class AuthService {
       return {
         success: true,
         message: 'Account created successfully! Please check your email to verify your account.',
-        user: data.user,
+        user: {
+          ...data.user,
+          updated_at: data.user.updated_at ?? "",
+        },
       };
 
     } catch (error) {

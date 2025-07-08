@@ -70,11 +70,11 @@ export default function SignupScreen() {
     if (result.success) {
       setShowVerificationPrompt(true);
     } else {
-      // Check for the specific "user already exists" error message
+      // Check for the specific "user already exists" error message from Supabase
       if (result.message.includes("User already registered")) {
         Alert.alert(
           "Account Exists",
-          "This email already has an account. Would you like to log in instead?",
+          "This email already has an associated account, please log in.",
           [
             {
               text: "Go to Login",
@@ -87,7 +87,7 @@ export default function SignupScreen() {
           ]
         );
       } else {
-        // Show other errors normally
+        // Show any other errors normally
         Alert.alert("Signup Failed", result.message);
       }
     }
@@ -95,13 +95,6 @@ export default function SignupScreen() {
 
   const handleBackToLogin = () => {
     setShowVerificationPrompt(false);
-    // Clear form before navigating
-    setFormData({
-      email: "",
-      password: "",
-      confirmPassword: "",
-      fullName: "",
-    });
     router.push("/(auth)/login");
   };
 
@@ -115,7 +108,8 @@ export default function SignupScreen() {
                 <Text style={styles.verificationTitle}>Check Your Email</Text>
                 <Text style={styles.verificationText}>
                   We've sent a verification link to your inbox. Please click the
-                  link to activate your account, then return here to log in.
+                  link to activate your account, then return to the login
+                  screen.
                 </Text>
                 <TouchableOpacity
                   style={styles.backButton}

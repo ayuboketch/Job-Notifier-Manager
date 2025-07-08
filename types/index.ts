@@ -1,7 +1,7 @@
 // types/index.ts
 export interface User {
   id: string;
-  email?: string; // <-- allow undefined
+  email?: string;
   full_name?: string;
   avatar_url?: string;
   created_at: string;
@@ -113,6 +113,12 @@ export interface SignUpData {
   email: string;
   password: string;
   full_name?: string;
+  options?: {
+    data?: {
+      full_name?: string;
+      fullName?: string;
+    };
+  };
 }
 
 export interface SignInData {
@@ -143,20 +149,6 @@ export interface ApiResponse<T = any> {
   error?: string;
   success: boolean;
   message?: string;
-}
-
-export interface UserProfile {
-  id: string;
-  email: string;
-  full_name?: string;
-  // Add any other fields relevant to your user profile
-}
-
-export interface SignUpData {
-  email: string;
-  password: string;
-  full_name?: string;
-  options?: any; // Add the options property, type as needed (e.g., SupabaseSignUpOptions)
 }
 
 // Database types for Supabase
@@ -196,19 +188,3 @@ export interface Database {
     };
   };
 }
-type ScheduledTask = { start: () => void; stop: () => void; destroy: () => void; getStatus: () => 'scheduled' | 'running' | 'stopped' | 'destroyed'; };
-
-// Define ScheduleOptions type or interface
-export interface ScheduleOptions {
-  timezone?: string;
-  runOnInit?: boolean;
-  [key: string]: any;
-}
-
-// If you only want to declare the type signature, use a type instead:
-export type ScheduleFunction = (
-  expression: string,
-  func: () => void | Promise<void>,
-  options?: ScheduleOptions
-) => ScheduledTask;
-

@@ -9,6 +9,7 @@ import {
   View,
 } from "react-native";
 import AnimatedGradientBackground from "../components/AnimatedGradientBackground"; // Assuming path is correct
+import DebugSupabase from "../components/DebugSupabase";
 
 export default function AuthHomeScreen() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function AuthHomeScreen() {
               Never miss your dream job again.
             </Text>
           </View>
+          <DebugSupabase />
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity

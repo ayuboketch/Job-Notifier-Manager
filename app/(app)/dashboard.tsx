@@ -25,7 +25,7 @@ type Company = {
   careerPageUrl: string;
   keywords: string[];
   priority: string;
-  checkInterval: number; // This is now a number (minutes)
+  checkInterval: number;
   status: string;
   lastChecked: string;
 };
@@ -44,6 +44,46 @@ type Job = {
   applicationDeadline: string | null;
 };
 
+// Enhanced fetch function with proper error handling
+async function apiRequest(url: string, options: RequestInit = {}) {
+  try {
+    console.log(`Making API request to: ${url}`);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+
+    console.log(`Response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API Error: ${response.status} - ${errorText}`);
+      throw new Error(
+        `HTTP ${response.status}: ${errorText || "Request failed"}`
+      );
+    }
+
+    const data = await response.json();
+    console.log("API Response:", data);
+    return data;
+  } catch (error) {
+    console.error("API Request failed:", error);
+    if (
+      error instanceof TypeError &&
+      error.message.includes("Network request failed")
+    ) {
+      throw new Error(
+        "Network connection failed. Please check your internet connection and ensure the server is running."
+      );
+    }
+    throw error;
+  }
+}
+
 export default function DashboardScreen() {
   const router = useRouter();
   const { signOut } = useAuth();
@@ -53,6 +93,7 @@ export default function DashboardScreen() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showJobModal, setShowJobModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const priorityJobs = jobs.filter((job) => job.priority === "high");
   const watchlistJobs = jobs.filter(
@@ -65,21 +106,51 @@ export default function DashboardScreen() {
 
   const fetchData = async () => {
     try {
-      const [companiesResponse, jobsResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/companies`),
-        fetch(`${API_BASE_URL}/jobs`),
+      setError(null);
+      setLoading(true);
+
+      // Test API connection first
+      console.log("Testing API connection...");
+
+      const [companiesData, jobsData] = await Promise.all([
+        apiRequest(`${API_BASE_URL}/companies`),
+        apiRequest(`${API_BASE_URL}/jobs`),
       ]);
 
-      const companiesData = await companiesResponse.json();
-      const jobsData = await jobsResponse.json();
+      // Handle different response formats
+      const companies = Array.isArray(companiesData)
+        ? companiesData
+        : companiesData.companies || companiesData.data || [];
+      const jobs = Array.isArray(jobsData)
+        ? jobsData
+        : jobsData.jobs || jobsData.data || [];
 
-      setTrackedCompanies(companiesData);
-      setJobs(jobsData);
-    } catch (error) {
-      Alert.alert(
-        "Error",
-        "Failed to fetch data. Please check your connection."
+      setTrackedCompanies(companies);
+      setJobs(jobs);
+
+      console.log(
+        `Loaded ${companies.length} companies and ${jobs.length} jobs`
       );
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to fetch data";
+      setError(errorMessage);
+
+      // Show more specific error messages
+      if (errorMessage.includes("Network connection failed")) {
+        Alert.alert(
+          "Connection Error",
+          "Cannot connect to the server. Please ensure:\n\n1. Your backend server is running\n2. The API URL is correct\n3. Your device is connected to the internet"
+        );
+      } else if (errorMessage.includes("HTTP 404")) {
+        Alert.alert(
+          "API Not Found",
+          "The API endpoints are not available. Please check your backend server setup."
+        );
+      } else {
+        Alert.alert("Error", errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -97,28 +168,34 @@ export default function DashboardScreen() {
     checkInterval: string;
   }) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/companies`, {
+      console.log("Adding company:", companyData);
+
+      const result = await apiRequest(`${API_BASE_URL}/companies`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(companyData),
       });
 
-      const result = await response.json();
+      console.log("Add company result:", result);
 
-      if (result.success) {
+      if (result.success || result.company) {
         setShowAddCompanyModal(false);
         fetchData(); // Refresh data
+
+        const companyName = result.company?.name || "Company";
+        const jobsFound = result.jobsFound || 0;
+
         Alert.alert(
           "Success!",
-          `Added ${result.company.name} to tracking. Found ${result.jobsFound} jobs.`
+          `Added ${companyName} to tracking. Found ${jobsFound} jobs.`
         );
       } else {
-        Alert.alert("Error", result.error || "Failed to add company");
+        throw new Error(result.error || "Failed to add company");
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to add company. Please try again.");
+      console.error("Failed to add company:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to add company";
+      Alert.alert("Error", errorMessage);
     }
   };
 
@@ -139,18 +216,16 @@ export default function DashboardScreen() {
 
   const handleDeleteJob = async (jobId: number) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+      await apiRequest(`${API_BASE_URL}/jobs/${jobId}`, {
         method: "DELETE",
       });
 
-      if (response.ok) {
-        setJobs(jobs.filter((job) => job.id !== jobId));
-        setShowJobModal(false);
-        setSelectedJob(null);
-      } else {
-        Alert.alert("Error", "Failed to delete job");
-      }
+      setJobs(jobs.filter((job) => job.id !== jobId));
+      setShowJobModal(false);
+      setSelectedJob(null);
+      Alert.alert("Success", "Job removed successfully");
     } catch (error) {
+      console.error("Failed to delete job:", error);
       Alert.alert("Error", "Failed to delete job");
     }
   };
@@ -165,24 +240,15 @@ export default function DashboardScreen() {
 
   const handleSetPriority = async (companyId: number, priority: string) => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/companies/${companyId}/priority`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ priority }),
-        }
-      );
+      await apiRequest(`${API_BASE_URL}/companies/${companyId}/priority`, {
+        method: "PUT",
+        body: JSON.stringify({ priority }),
+      });
 
-      if (response.ok) {
-        fetchData(); // Refresh data
-        Alert.alert("Success", `Company priority updated to ${priority}`);
-      } else {
-        Alert.alert("Error", "Failed to update priority");
-      }
+      fetchData(); // Refresh data
+      Alert.alert("Success", `Company priority updated to ${priority}`);
     } catch (error) {
+      console.error("Failed to update priority:", error);
       Alert.alert("Error", "Failed to update priority");
     }
   };
@@ -199,19 +265,14 @@ export default function DashboardScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              const response = await fetch(
-                `${API_BASE_URL}/companies/${companyId}`,
-                {
-                  method: "DELETE",
-                }
-              );
+              await apiRequest(`${API_BASE_URL}/companies/${companyId}`, {
+                method: "DELETE",
+              });
 
-              if (response.ok) {
-                fetchData(); // Refresh data
-              } else {
-                Alert.alert("Error", "Failed to delete company");
-              }
+              fetchData(); // Refresh data
+              Alert.alert("Success", "Company deleted successfully");
             } catch (error) {
+              console.error("Failed to delete company:", error);
               Alert.alert("Error", "Failed to delete company");
             }
           },
@@ -225,6 +286,24 @@ export default function DashboardScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading...</Text>
+          <Text style={styles.loadingSubtext}>Connecting to server...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Connection Error</Text>
+          <Text style={styles.errorMessage}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={fetchData}>
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -326,7 +405,7 @@ export default function DashboardScreen() {
                       )}
                     </View>
                     <Text style={styles.matchedKeywords}>
-                      Matched: {job.matchedKeywords.join(", ")}
+                      Matched: {job.matchedKeywords?.join(", ") || "N/A"}
                     </Text>
                     {job.applicationDeadline && (
                       <Text style={styles.deadline}>
@@ -397,7 +476,7 @@ export default function DashboardScreen() {
                     </View>
                   </View>
                   <Text style={styles.companyDetails}>
-                    Keywords: {company.keywords.join(", ")}
+                    Keywords: {company.keywords?.join(", ") || "N/A"}
                   </Text>
                   <Text style={styles.companyDetails}>
                     Priority: {company.priority} • Check:{" "}
@@ -436,7 +515,7 @@ export default function DashboardScreen() {
 
                 <View style={styles.jobMetadata}>
                   <Text style={styles.metadataItem}>
-                    Keywords: {selectedJob.matchedKeywords.join(", ")}
+                    Keywords: {selectedJob.matchedKeywords?.join(", ") || "N/A"}
                   </Text>
                   <Text style={styles.metadataItem}>
                     Priority: {selectedJob.priority}
@@ -457,7 +536,7 @@ export default function DashboardScreen() {
 
                 <Text style={styles.sectionTitle}>Job Description</Text>
                 <Text style={styles.jobDescription}>
-                  {selectedJob.description}
+                  {selectedJob.description || "No description available"}
                 </Text>
 
                 <View style={styles.modalActions}>
@@ -517,6 +596,43 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontSize: 18,
     fontWeight: "500",
+  },
+  loadingSubtext: {
+    color: "#64748B",
+    fontSize: 14,
+    marginTop: 8,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  errorTitle: {
+    color: "#EF4444",
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  errorMessage: {
+    color: "#94A3B8",
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  retryButton: {
+    backgroundColor: "#3B82F6",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  retryButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
   jobMetadata: {
     marginVertical: 12,
@@ -634,7 +750,6 @@ const styles = StyleSheet.create({
   scrollList: {
     maxHeight: 500,
     borderRadius: 12,
-    // backgroundColor: "#1E293B",
     padding: 8,
   },
   scrollListContent: {
@@ -736,7 +851,6 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     marginBottom: 4,
   },
-  // Modal styles
   modalContainer: {
     flex: 1,
     backgroundColor: "#141a1f",
@@ -763,92 +877,22 @@ const styles = StyleSheet.create({
   modalHeaderSpacer: {
     width: 60,
   },
-  modalCancelButton: {
-    color: "#94A3B8",
-    fontSize: 16,
-  },
-  modalSaveButton: {
-    color: "#3B82F6",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  disabledButton: {
-    color: "#6B7280",
-  },
   modalContent: {
     flex: 1,
     padding: 24,
   },
-  formSection: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: "#1E293B",
-    borderRadius: 8,
-    padding: 12,
-    color: "white",
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  helpText: {
-    fontSize: 12,
-    color: "#94A3B8",
-    marginTop: 4,
-  },
-  priorityContainer: {
-    flexDirection: "row",
-    gap: 8,
-  },
   priorityButton: {
-    flex: 1,
     backgroundColor: "#1E293B",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#334155",
-  },
-  priorityButtonActive: {
-    backgroundColor: "#3B82F6",
-    borderColor: "#3B82F6",
-  },
-  priorityButtonText: {
-    color: "#94A3B8",
-    fontWeight: "500",
-  },
-  priorityButtonTextActive: {
-    color: "white",
-  },
-  frequencyContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  frequencyButton: {
-    backgroundColor: "#1E293B",
-    paddingVertical: 8,
     paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: "#334155",
   },
-  frequencyButtonActive: {
-    backgroundColor: "#3B82F6",
-    borderColor: "#3B82F6",
-  },
-  frequencyButtonText: {
+  priorityButtonText: {
     color: "#94A3B8",
-    fontSize: 14,
-  },
-  frequencyButtonTextActive: {
-    color: "white",
+    fontSize: 12,
+    fontWeight: "500",
   },
   applyButton: {
     backgroundColor: "#3B82F6",
@@ -856,6 +900,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginBottom: 12,
+    flex: 1,
   },
   metadataItem: {
     fontSize: 14,

@@ -101,187 +101,109 @@ const convertIntervalToMinutes = (interval: string): number => {
 }
 
 /* ---------- Scraping helpers (Enhanced with better error handling) ----- */
-const findCareerPage = async (page: Page, url: string): Promise<string> => {
-  const commonCareerPaths = ['/careers', '/jobs', '/employment', '/work-with-us', '/job-openings', '/opportunities'];
-  
+const findCareerPage = async (page: Page, homeUrl: string): Promise<string> => {
+  const clean = homeUrl.replace(/\/+$/, ""); // remove trailing slashes
+
+  // 1) Try /jobs (LinkedIn, Stripe, etc.)
+  const jobs = `${clean}/jobs`;
   try {
-    console.log(`Finding career page for: ${url}`);
-    
-    // Try main URL first
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-    const html = await page.content();
-    
-    if (/job|career|employment|hiring|opportunities/i.test(html)) {
-      console.log(`Career content found on main page: ${url}`);
-      return url;
-    }
-    
-    // Try common career paths
-    for (const path of commonCareerPaths) {
-      try {
-        const careerUrl = new URL(path, url).href;
-        console.log(`Trying career URL: ${careerUrl}`);
-        
-        await page.goto(careerUrl, { waitUntil: 'networkidle2', timeout: 20000 });
-        
-        // Check if page loaded successfully and contains career content
-        const pageContent = await page.content();
-        if (pageContent.length > 1000 && /job|career|employment|position|hiring/i.test(pageContent)) {
-          console.log(`Found career page: ${careerUrl}`);
-          return careerUrl;
-        }
-      } catch (e) {
-        console.log(`Failed to load ${path}: ${e}`);
-        continue;
+    await page.goto(jobs, { waitUntil: "domcontentloaded", timeout: 8000 });
+    if ((await page.content()).length > 2000) return jobs;
+  } catch {/* ignore */}
+
+  // 2) Try /careers
+  const careers = `${clean}/careers`;
+  try {
+    await page.goto(careers, { waitUntil: "domcontentloaded", timeout: 8000 });
+    if ((await page.content()).length > 2000) return careers;
+  } catch {/* ignore */}
+
+  // 3) Fallback: home page already lists jobs
+  try {
+    await page.goto(clean, { waitUntil: "domcontentloaded", timeout: 8000 });
+    return clean;
+  } catch {/* ignore */}
+
+  throw new Error(`Could not locate a jobs or careers page for ${homeUrl}`);
+};
+
+const scrapeJobs = async (
+  page: Page,
+  keywords: string[],
+  companyName: string
+): Promise<Partial<Job>[]> => {
+  await page.waitForTimeout(1000); // allow SPA hydration
+
+  return page.evaluate((kws, coName) => {
+    const list: Partial<Job>[] = [];
+    const kSet = new Set(kws.map((k) => k.toLowerCase()));
+
+    // LinkedIn, Indeed, generic
+    const cards = document.querySelectorAll(
+      "[data-automation-id='job-card'], .jobs-search-results__list-item, .job-card, a[href*='jobs/view']"
+    );
+
+    cards.forEach((c) => {
+      const link = c.closest("a") as HTMLAnchorElement;
+      const title = c.textContent?.trim();
+      if (!link || !title) return;
+
+      const matched = [...kSet].filter((k) => title.toLowerCase().includes(k));
+      if (kSet.size === 0 || matched.length) {
+        list.push({
+          title,
+          url: link.href,
+          company: coName,
+          matchedKeywords: [...new Set(matched)],
+          dateFound: new Date().toISOString(),
+        });
       }
-    }
-    
-    // Fallback to /careers
-    const fallbackUrl = `${url}/careers`;
-    console.log(`Using fallback URL: ${fallbackUrl}`);
-    return fallbackUrl;
-    
-  } catch (err: any) {
-    console.error(`Error finding career page for ${url}:`, err.message);
-    throw new Error(`Could not find career page for ${url}: ${err.message}`);
+    });
+
+    return list;
+  }, keywords, companyName);
+};
+
+const scrapeJobDetails = async (
+  page: Page,
+  jobUrl: string
+): Promise<Pick<Job, "description" | "applicationDeadline">> => {
+  try {
+    await page.goto(jobUrl, { waitUntil: "domcontentloaded", timeout: 15000 });
+
+    return await page.evaluate(() => {
+      // Description
+      const descEl =
+        document.querySelector("article") ??
+        document.querySelector(".jobs-description-content") ??
+        document.body;
+      const description =
+        descEl?.textContent?.trim().slice(0, 1200) ?? "No description";
+
+      // Deadline (LinkedIn & common patterns)
+      const patterns = [
+        /(?:deadline|apply by|closing date)[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i,
+        /(?:deadline|apply by|closing date)[:\s]+(\d{4}-\d{2}-\d{2})/i,
+      ];
+      let deadline: string | null = null;
+      for (const p of patterns) {
+        const m = document.body.textContent?.match(p);
+        if (m) {
+          try {
+            deadline = new Date(m[1]).toISOString();
+            break;
+          } catch {/* ignore */}
+        }
+      }
+
+      return { description, applicationDeadline: deadline };
+    });
+  } catch {
+    return {
+      description: "Unable to fetch job details",
+      applicationDeadline: null,
+    };
   }
-};
-
-const scrapeJobs = async (page: Page, keywords: string[], companyName: string): Promise<Partial<Job>[]> => {
-    console.log(`Scraping jobs for ${companyName} with keywords: ${keywords.join(', ')}`);
-    
-    return page.evaluate((kws: string[], coName: string) => {
-        const jobs: Partial<Job>[] = [];
-        const selectors = [
-            'a[href*="job"]', 
-            'a[href*="position"]', 
-            'a[href*="career"]', 
-            'a[href*="opening"]',
-            '.job-listing', 
-            '.position', 
-            '.career-item', 
-            '[class*="job"]',
-            '[class*="position"]',
-            '[class*="opening"]',
-            '[data-testid*="job"]'
-        ];
-        
-        const links = new Map<string, { text: string; keywords: string[] }>();
-        
-        selectors.forEach(sel => {
-            try {
-                document.querySelectorAll(sel).forEach(el => {
-                    const anchor = el.closest('a') || el as HTMLAnchorElement;
-                    if (!anchor || !anchor.href) return;
-                    
-                    const text = (anchor.textContent || anchor.innerText || '').trim().toLowerCase();
-                    const href = anchor.href;
-                    
-                    // More flexible job detection
-                    if (text.length > 0 && (
-                        text.includes('job') || 
-                        text.includes('career') || 
-                        text.includes('position') || 
-                        text.includes('opening') ||
-                        text.includes('role') ||
-                        href.includes('job') ||
-                        href.includes('career') ||
-                        href.includes('position')
-                    )) {
-                        const matchedKws = kws.filter(kw => text.includes(kw.toLowerCase()));
-                        if (matchedKws.length > 0 || kws.length === 0) { // Include all jobs if no specific keywords
-                            if (!links.has(href)) {
-                                links.set(href, { text: (anchor.textContent || anchor.innerText || '').trim(), keywords: [] });
-                            }
-                            if (matchedKws.length > 0) {
-                                links.get(href)!.keywords.push(...matchedKws);
-                            }
-                        }
-                    }
-                });
-            } catch (e) {
-                console.error(`Error with selector ${sel}:`, e);
-            }
-        });
-        
-        links.forEach((data, url) => {
-            jobs.push({
-                title: data.text || 'Job Opening',
-                url: url,
-                company: coName,
-                matchedKeywords: [...new Set(data.keywords)],
-                dateFound: new Date().toISOString(),
-            });
-        });
-        
-        return jobs;
-    }, keywords, companyName);
-};
-
-const scrapeJobDetails = async (page: Page, jobUrl: string): Promise<Pick<Job, 'description' | 'applicationDeadline'>> => {
-    try {
-        console.log(`Scraping job details from: ${jobUrl}`);
-        await page.goto(jobUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-        
-        return await page.evaluate(() => {
-            const descriptionSelectors = [
-                '.job-description', 
-                '.description', 
-                '[class*="description"]', 
-                '.content', 
-                '.job-content', 
-                'article', 
-                'main',
-                '.job-details',
-                '[class*="job-details"]'
-            ];
-            
-            let description = '';
-            for (const sel of descriptionSelectors) {
-                const el = document.querySelector(sel) as HTMLElement;
-                if (el && el.innerText) {
-                    description = el.innerText.trim();
-                    if (description.length > 100) break;
-                }
-            }
-            
-            // If no description found, try to get any substantial text
-            if (!description) {
-                const bodyText = document.body.innerText || '';
-                if (bodyText.length > 200) {
-                    description = bodyText.substring(0, 500) + '...';
-                }
-            }
-            
-            // Look for application deadlines
-            const patterns = [
-                /deadline[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i, 
-                /apply by[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i,
-                /closing date[:\s]+(\d{1,2}\/\d{1,2}\/\d{4})/i
-            ];
-            
-            const bodyText = (document.body.innerText || '');
-            let deadline: string | null = null;
-            
-            for(const p of patterns){
-                const match = bodyText.match(p);
-                if(match && match[1]){
-                    try {
-                        deadline = new Date(match[1]).toISOString();
-                        break;
-                    } catch {}
-                }
-            }
-            
-            return { 
-                description: description || 'No description available.', 
-                applicationDeadline: deadline 
-            };
-        });
-    } catch (error: any) {
-        console.error(`Error scraping job details from ${jobUrl}:`, error.message);
-        return { description: 'Unable to fetch job description.', applicationDeadline: null };
-    }
 };
 
 /* ---------- Route Handlers (Enhanced with better error handling) ------- */
@@ -518,7 +440,7 @@ cron.schedule('*/30 * * * *', async () => {
           const { data: existingJobs } = await supabase.from('jobs').select('url').eq('companyId', company.id);
           const existingUrls = new Set(existingJobs?.map(e => e.url));
 
-          const newJobs = foundJobs.filter(f => f.url && !existingUrls.has(f.url));
+          const newJobs = foundJobs.filter((f: Partial<Job>) => f.url && !existingUrls.has(f.url));
           if (newJobs.length === 0) {
               console.log(`[CRON] No new jobs found for ${company.name}.`);
               await supabase.from('companies').update({ lastChecked: new Date().toISOString() }).eq('id', company.id);
@@ -565,7 +487,7 @@ cron.schedule('*/30 * * * *', async () => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`✅ Backend server running on http://0.0.0.0:${PORT}`);
   console.log(`   Local: http://localhost:${PORT}`);
   console.log(`   Network: http://192.168.100.88:${PORT}`);

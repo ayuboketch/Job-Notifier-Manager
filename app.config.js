@@ -8,8 +8,12 @@ export default {
     scheme: "jobtracker",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
-
     icon: "./assets/images/Job-Notifier-Manager.png",
+    extra: {
+      eas: {
+        projectId: "e813559c-b463-4d5a-adc3-4e6b9a564e96",
+      },
+    },
     splash: {
       image: "./assets/images/Job-Notifier-Manager.png",
       resizeMode: "contain",

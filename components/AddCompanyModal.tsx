@@ -1,3 +1,4 @@
+//components/addCompanyModal.ts
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -19,6 +20,7 @@ interface AddCompanyModalProps {
   onClose: () => void;
   onAddCompany: (companyData: {
     url: string;
+    careerPageUrl?: string;
     keywords: string;
     priority: string;
     checkInterval: string;
@@ -36,6 +38,8 @@ export default function AddCompanyModal({
   const [checkInterval, setCheckInterval] = useState("1 day");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [careerPageUrl, setCareerPageUrl] = useState("");
+  const [progress, setProgress] = useState<null | string>(null);
 
   const validateUrl = (url: string): boolean => {
     try {
@@ -53,7 +57,16 @@ export default function AddCompanyModal({
     }
     return url;
   };
+  const extractCompanyName = (url: string): string => {
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname.replace("www.", "").split(".")[0];
+    } catch {
+      return "company";
+    }
+  };
 
+  // 2.  handleAddCompany with live messages
   const handleAddCompany = async () => {
     setError(null);
     if (!companyUrl.trim()) {
@@ -65,31 +78,67 @@ export default function AddCompanyModal({
       return;
     }
 
-    const formattedUrl = formatUrl(companyUrl.trim());
+    // auto-prefill
+    let formattedUrl = companyUrl.trim();
+    if (!formattedUrl.startsWith("http")) {
+      formattedUrl = `https://www.${formattedUrl}`;
+    }
     if (!validateUrl(formattedUrl)) {
-      setError("Please enter a valid URL (e.g., https://company.com)");
+      setError("Please enter a valid URL");
       return;
     }
 
     setIsProcessing(true);
+    setProgress("Looking for jobs…"); // initial
+
+    // simulate messages every 6 s
+    const messages = [
+      "Doing our work in the background…",
+      "This is taking a little longer…",
+      "Almost finished…",
+      "Running out of time…",
+    ];
+    let idx = 0;
+    const timer = setInterval(() => {
+      if (idx < messages.length) setProgress(messages[idx++]);
+    }, 6000);
+
     try {
       await onAddCompany({
         url: formattedUrl,
+        careerPageUrl: careerPageUrl.trim()
+          ? `${formattedUrl}${careerPageUrl.trim()}`
+          : undefined,
         keywords: jobKeywords.trim(),
         priority,
         checkInterval,
       });
+      clearInterval(timer);
       handleClose();
     } catch (err: any) {
+      clearInterval(timer);
+      setProgress(null);
       setError(
         err.message?.includes("Network")
           ? "Network error. Please check your connection and try again."
+          : err.message?.includes("Timeout")
+          ? "Sorry, we didn’t find any jobs this time. Try again later or use a direct career page URL."
           : err.message || "Something went wrong"
       );
     } finally {
       setIsProcessing(false);
+      setProgress(null);
     }
   };
+
+  // 3.  overlay component
+  const ProgressOverlay = () =>
+    progress ? (
+      <View style={styles.overlay}>
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.overlayText}>{progress}</Text>
+      </View>
+    ) : null;
 
   const handleClose = () => {
     if (isProcessing) {
@@ -177,28 +226,53 @@ export default function AddCompanyModal({
           >
             <View style={styles.section}>
               <Text style={styles.label}>Company Website URL *</Text>
-              <TextInput
-                style={styles.input}
-                value={companyUrl}
-                onChangeText={(t) => {
-                  setCompanyUrl(t);
-                  setError(null);
-                }}
-                placeholder="https://company.com or company.com"
-                placeholderTextColor="#64748B"
-                autoCapitalize="none"
-                keyboardType="url"
-                editable={!isProcessing}
-              />
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputPrefix}>https://www.</Text>
+                <TextInput
+                  style={styles.inputField}
+                  value={companyUrl}
+                  onChangeText={(t) => {
+                    setCompanyUrl(t.replace(/^(https?:\/\/)?(www\.)?/, ''));
+                    setError(null);
+                  }}
+                  placeholder="company.com"
+                  placeholderTextColor="#64748B"
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  editable={!isProcessing}
+                />
+              </View>
               <Text style={styles.helpText}>
-                We’ll automatically find their career page
+                We’ll automatically fill it in career page
+              </Text>
+            </View>
+            <View style={styles.section}>
+              <Text style={styles.label}>Career / Jobs URL </Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputPrefix} numberOfLines={1} ellipsizeMode="tail">
+                  {companyUrl ? `https://www.${companyUrl}` : 'https://www.company.com'}
+                </Text>
+                <TextInput
+                  style={styles.inputField}
+                  value={careerPageUrl}
+                  onChangeText={(t) => setCareerPageUrl(t)}
+                  placeholder="/jobs or /search"
+                  placeholderTextColor="#64748B"
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  editable={!isProcessing}
+                />
+              </View>
+              <Text style={styles.helpText}>
+                Just put the exact page like "/careers" or "/jobs" for easier
+                detection.
               </Text>
             </View>
 
             <View style={styles.section}>
               <Text style={styles.label}>Job Keywords *</Text>
               <TextInput
-                style={[styles.input, styles.multilineInput]}
+                style={[styles.textInput, styles.multilineInput]}
                 value={jobKeywords}
                 onChangeText={(t) => {
                   setJobKeywords(t);
@@ -243,28 +317,33 @@ export default function AddCompanyModal({
             <View style={styles.section}>
               <Text style={styles.label}>Check Frequency</Text>
               <View style={styles.chipRow}>
-                {["1 hour", "2 hours", "3 hours", "1 day", "2 days", "1 week"].map(
-                  (freq) => (
-                    <TouchableOpacity
-                      key={freq}
+                {[
+                  "1 hour",
+                  "2 hours",
+                  "3 hours",
+                  "1 day",
+                  "2 days",
+                  "1 week",
+                ].map((freq) => (
+                  <TouchableOpacity
+                    key={freq}
+                    style={[
+                      styles.chip,
+                      checkInterval === freq && styles.chipActive,
+                    ]}
+                    onPress={() => setCheckInterval(freq)}
+                    disabled={isProcessing}
+                  >
+                    <Text
                       style={[
-                        styles.chip,
-                        checkInterval === freq && styles.chipActive,
+                        styles.chipText,
+                        checkInterval === freq && styles.chipTextActive,
                       ]}
-                      onPress={() => setCheckInterval(freq)}
-                      disabled={isProcessing}
                     >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          checkInterval === freq && styles.chipTextActive,
-                        ]}
-                      >
-                        {freq}
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                )}
+                      {freq}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
               <Text style={styles.helpText}>
                 Higher priority = more frequent checks
@@ -274,6 +353,7 @@ export default function AddCompanyModal({
             {/* Extra bottom padding */}
             <View style={{ height: 40 }} />
           </ScrollView>
+          <ProgressOverlay />
         </SafeAreaView>
       </KeyboardAvoidingView>
     </Modal>
@@ -313,7 +393,7 @@ const styles = StyleSheet.create({
     color: "white",
     marginBottom: 8,
   },
-  input: {
+  textInput: {
     backgroundColor: "#1E293B",
     borderWidth: 1,
     borderColor: "#334155",
@@ -321,6 +401,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: "white",
+    fontSize: 16,
+    minHeight: 48,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+  },
+  inputPrefix: {
+    color: '#94A3B8',
+    fontSize: 16,
+    paddingLeft: 14,
+  },
+  inputField: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    color: 'white',
     fontSize: 16,
     minHeight: 48,
   },
@@ -376,5 +477,27 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 8,
   },
-  errorText: { color: "white", fontSize: 14, fontWeight: "500", textAlign: "center" },
+  errorText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#141a1fe6",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  overlayText: {
+    color: "white",
+    fontSize: 16,
+    marginTop: 12,
+    textAlign: "center",
+  },
 });

@@ -23,37 +23,37 @@ export const apiWithAuth = {
       },
       body: JSON.stringify(data),
     }).then(r => r.json()),
-  deleteTrackedWebsite: (id: number) => fetch(`${process.env.EXPO_PUBLIC_API}/api/tracked-websites/${id}`, {
+  deleteTrackedWebsite: (id: number) => fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/tracked-websites/${id}`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${process.env.EXPO_PUBLIC_TOKEN}`,
     },
   }),
-  getJobs: () => fetch(`${process.env.EXPO_PUBLIC_API}/api/jobs`, {
+  getJobs: () => fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/jobs`, {
     headers: {
       Authorization: `Bearer ${process.env.EXPO_PUBLIC_TOKEN}`,
     },
   }).then(r => r.json()),
-  saveJob: (jobId: number) => fetch(`${process.env.EXPO_PUBLIC_API}/api/jobs/${jobId}/save`, {
+  saveJob: (jobId: number) => fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/jobs/${jobId}/save`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.EXPO_PUBLIC_TOKEN}`,
     },
   }).then(r => r.json()),
-  unsaveJob: (jobId: number) => fetch(`${process.env.EXPO_PUBLIC_API}/api/jobs/${jobId}/unsave`, {
+  unsaveJob: (jobId: number) => fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/jobs/${jobId}/unsave`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.EXPO_PUBLIC_TOKEN}`,
     },
   }).then(r => r.json()),
-  getSavedJobs: () => fetch(`${process.env.EXPO_PUBLIC_API}/api/saved-jobs`, {
+  getSavedJobs: () => fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/saved-jobs`, {
     headers: {
       Authorization: `Bearer ${process.env.EXPO_PUBLIC_TOKEN}`,
     },
   }).then(r => r.json()),
-  deleteSavedJob: (id: number) => fetch(`${process.env.EXPO_PUBLIC_API}/api/saved-jobs/${id}`, {
+  deleteSavedJob: (id: number) => fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/saved-jobs/${id}`, {
     method: 'DELETE',
     headers: {
       Authorization: `Bearer ${process.env.EXPO_PUBLIC_TOKEN}`,

@@ -1,14 +1,37 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "target": "esnext",
+    "target": "es2017",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "jsx": "react-native",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    
+    // Enhanced strict type checking
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    
     "types": [
-      "nativewind/types"
+      "jest"
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./types"
     ],
     "paths": {
       "@/*": [
@@ -23,6 +46,8 @@
     "components",
     "types",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-, "app/(auth)/_layout.tsx"  ]
+    "expo-env.d.ts",
+    "app/(auth)/_layout.tsx"
+  ],
+  "extends": "expo/tsconfig.base"
 }

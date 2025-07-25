@@ -1,4 +1,8 @@
 // types/index.ts
+// Re-export database types for consistency
+export * from './database';
+
+// Legacy interfaces for backward compatibility (deprecated - use database types instead)
 export interface User {
   id: string;
   email?: string;
@@ -19,6 +23,7 @@ export interface TrackedWebsite {
   last_checked_at?: string;
   created_at: string;
   updated_at: string;
+  keywords?: string[]; 
 }
 
 export interface JobAlert {
@@ -63,30 +68,8 @@ export type JobStatus =
   | 'rejected' 
   | 'withdrawn';
 
-export interface Job {
-  id: string;
-  user_id: string;
-  saved_job_id?: string;
-  job_title: string;
-  company_name: string;
-  job_url?: string;
-  location?: string;
-  salary_range?: string;
-  employment_type?: string;
-  status: JobStatus;
-  application_date?: string;
-  interview_date?: string;
-  follow_up_date?: string;
-  notes?: string;
-  cover_letter?: string;
-  resume_version?: string;
-  contact_person?: string;
-  contact_email?: string;
-  priority: number;
-  created_at: string;
-  updated_at: string;
-  saved_job?: SavedJob;
-}
+// Note: Job and Company interfaces have been moved to types/database.ts
+// Use the database-synchronized types from there instead
 
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'job_alert';
 
@@ -177,8 +160,8 @@ export interface Database {
       };
       jobs: {
         Row: Job;
-        Insert: Omit<Job, 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Omit<Job, 'id' | 'created_at' | 'updated_at'>>;
+        Insert: JobInsert;
+        Update: JobUpdate;
       };
       notifications: {
         Row: Notification;

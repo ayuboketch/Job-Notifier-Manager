@@ -25,6 +25,7 @@ interface AddCompanyModalProps {
     priority: string;
     checkInterval: string;
   }) => Promise<void>;
+  onCompanyAdded?: () => void;
 }
 
 export default function AddCompanyModal({
@@ -89,19 +90,22 @@ export default function AddCompanyModal({
     }
 
     setIsProcessing(true);
-    setProgress("Looking for jobs…"); // initial
+    setProgress("🔍 Finding career page..."); // initial
 
-    // simulate messages every 6 s
+    // More informative progress messages
     const messages = [
-      "Doing our work in the background…",
-      "This is taking a little longer…",
-      "Almost finished…",
-      "Running out of time…",
+      "🌐 Accessing company website...",
+      "🔎 Scanning for job listings...",
+      "⚡ Processing job data...",
+      "📊 Matching keywords...",
+      "✨ Almost finished...",
     ];
     let idx = 0;
     const timer = setInterval(() => {
-      if (idx < messages.length) setProgress(messages[idx++]);
-    }, 6000);
+      if (idx < messages.length) {
+        setProgress(messages[idx++]);
+      }
+    }, 4000); // Reduced interval for more frequent updates
 
     try {
       await onAddCompany({
@@ -114,20 +118,26 @@ export default function AddCompanyModal({
         checkInterval,
       });
       clearInterval(timer);
-      handleClose();
+      setProgress("✅ Success! Jobs found and added.");
+      // Brief delay to show success message
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
     } catch (err: any) {
       clearInterval(timer);
       setProgress(null);
       setError(
         err.message?.includes("Network")
-          ? "Network error. Please check your connection and try again."
+          ? "🌐 Network error. Please check your connection and try again."
           : err.message?.includes("Timeout")
-          ? "Sorry, we didn’t find any jobs this time. Try again later or use a direct career page URL."
-          : err.message || "Something went wrong"
+          ? "⏱️ Taking longer than expected. The site might be slow or protected. Try using a direct career page URL."
+          : err.message || "❌ Something went wrong. Please try again."
       );
     } finally {
-      setIsProcessing(false);
-      setProgress(null);
+      if (!progress?.includes("Success!")) {
+        setIsProcessing(false);
+        setProgress(null);
+      }
     }
   };
 
@@ -204,9 +214,16 @@ export default function AddCompanyModal({
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#3B82F6" />
               <Text style={styles.loadingText}>
-                Finding career page and scraping jobs...
+                {progress || "Processing..."}
               </Text>
-              <Text style={styles.loadingSubtext}>This may take a moment</Text>
+              <Text style={styles.loadingSubtext}>
+                {progress?.includes("Success!") 
+                  ? "Redirecting to dashboard..." 
+                  : "This may take 30-60 seconds"}
+              </Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${Math.min((Date.now() % 60000) / 600, 100)}%` }]} />
+              </View>
             </View>
           )}
 
@@ -499,5 +516,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 12,
     textAlign: "center",
+  },
+  progressBar: {
+    width: "80%",
+    height: 4,
+    backgroundColor: "#334155",
+    borderRadius: 2,
+    marginTop: 16,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#3B82F6",
+    borderRadius: 2,
   },
 });

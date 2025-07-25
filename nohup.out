@@ -286,3 +286,82 @@ Fetching companies...
 Fetching jobs with company names...
 Found 2 companies
 Found 0 jobs with company names
+[2025-07-25T21:00:31.491Z] GET /api/companies
+Fetching companies...
+[2025-07-25T21:00:31.507Z] GET /api/jobs
+Fetching jobs with company names...
+Found 2 companies
+Found 0 jobs with company names
+No API jobs found for deel, falling back to HTML scraping.
+Error during route interception (URL: https://px.mountain.com/st?ga_tracking_id=G-5DZXYDY43N%3BUA-131130443-2&ga_client_id=1356859464.1753477218&shpt=Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World&dcm_cid=1356859464.1753477218&available_ga=%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D&ga_info=%7B%22status%22%3A%22OK%22%2C%22ga_tracking_id%22%3A%22UA-131130443-2%3BG-5DZXYDY43N%22%2C%22ga_client_id%22%3A%221356859464.1753477218%22%2C%22shpt%22%3A%22Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World%22%2C%22dcm_cid%22%3A%221356859464.1753477218%22%2C%22mntnis%22%3A%7B%7D%2C%22execution_workflow%22%3A%7B%22iteration%22%3A3%2C%22shpt%22%3A%22OK%22%2C%22dcm_cid%22%3A%22OK%22%7D%2C%22available_ga%22%3A%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D%7D&hardcoded_ga=G-5DZXYDY43N%3BUA-131130443-2&meta_tag_data=%5B%7B%22description.content%22%3A%22Explore%20career%20opportunities%20at%20Deel%20and%20be%20part%20of%20a%20global%20team%20in%20over%2080%20countries.%20Work-from-anywhere%20and%20contribute%20to%20shaping%20the%20future%20of%20remote%20work.%22%7D%5D&dxver=4.0.0&shaid=32887&plh=https%3A%2F%2Fwww.deel.com%2Fcareers%2Fopen-roles%2F&cb=59171874025528310term%3Dvalue&shoid=1356859464.1753477218&shadditional=googletagmanager%3Dtrue%2Cga4%3Dtrue): route.fetch: Parse Error: Missing expected CR after response line
+Call log:
+[2m  - → GET https://px.mountain.com/st?ga_tracking_id=G-5DZXYDY43N%3BUA-131130443-2&ga_client_id=1356859464.1753477218&shpt=Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World&dcm_cid=1356859464.1753477218&available_ga=%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D&ga_info=%7B%22status%22%3A%22OK%22%2C%22ga_tracking_id%22%3A%22UA-131130443-2%3BG-5DZXYDY43N%22%2C%22ga_client_id%22%3A%221356859464.1753477218%22%2C%22shpt%22%3A%22Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World%22%2C%22dcm_cid%22%3A%221356859464.1753477218%22%2C%22mntnis%22%3A%7B%7D%2C%22execution_workflow%22%3A%7B%22iteration%22%3A3%2C%22shpt%22%3A%22OK%22%2C%22dcm_cid%22%3A%22OK%22%7D%2C%22available_ga%22%3A%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D%7D&hardcoded_ga=G-5DZXYDY43N%3BUA-131130443-2&meta_tag_data=%5B%7B%22description.content%22%3A%22Explore%20career%20opportunities%20at%20Deel%20and%20be%20part%20of%20a%20global%20team%20in%20over%2080%20countries.%20Work-from-anywhere%20and%20contribute%20to%20shaping%20the%20future%20of%20remote%20work.%22%7D%5D&dxver=4.0.0&shaid=32887&plh=https%3A%2F%2Fwww.deel.com%2Fcareers%2Fopen-roles%2F&cb=59171874025528310term%3Dvalue&shoid=1356859464.1753477218&shadditional=googletagmanager%3Dtrue%2Cga4%3Dtrue[22m
+[2m    - user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/139.0.7258.5 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+[2m    - referer: https://www.deel.com/[22m
+[2m    - sec-ch-ua: "Not;A=Brand";v="99", "HeadlessChrome";v="139", "Chromium";v="139"[22m
+[2m    - sec-ch-ua-mobile: ?0[22m
+[2m    - sec-ch-ua-platform: "macOS"[22m
+
+    at <anonymous> (/Users/ayuboketch/Desktop/Repos/Job-Notifier-Manager/server/index.ts:190:36)
+Error during route interception (URL: https://px.mountain.com/st?ga_tracking_id=G-5DZXYDY43N%3BUA-131130443-2&ga_client_id=1356859464.1753477218&shpt=Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World&dcm_cid=1356859464.1753477218&available_ga=%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D&ga_info=%7B%22status%22%3A%22OK%22%2C%22ga_tracking_id%22%3A%22UA-131130443-2%3BG-5DZXYDY43N%22%2C%22ga_client_id%22%3A%221356859464.1753477218%22%2C%22shpt%22%3A%22Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World%22%2C%22dcm_cid%22%3A%221356859464.1753477218%22%2C%22mntnis%22%3A%7B%7D%2C%22execution_workflow%22%3A%7B%22iteration%22%3A4%2C%22shpt%22%3A%22OK%22%2C%22dcm_cid%22%3A%22OK%22%7D%2C%22available_ga%22%3A%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D%7D&hardcoded_ga=G-5DZXYDY43N%3BUA-131130443-2&meta_tag_data=%5B%7B%22description.content%22%3A%22Explore%20career%20opportunities%20at%20Deel%20and%20be%20part%20of%20a%20global%20team%20in%20over%2080%20countries.%20Work-from-anywhere%20and%20contribute%20to%20shaping%20the%20future%20of%20remote%20work.%22%7D%5D&dxver=4.0.0&shaid=32887&plh=https%3A%2F%2Fwww.deel.com%2Fcareers%2Fopen-roles%2F&cb=65342039706445240term%3Dvalue&shoid=1356859464.1753477218&shadditional=googletagmanager%3Dtrue%2Cga4%3Dtrue): route.fetch: Parse Error: Missing expected CR after response line
+Call log:
+[2m  - → GET https://px.mountain.com/st?ga_tracking_id=G-5DZXYDY43N%3BUA-131130443-2&ga_client_id=1356859464.1753477218&shpt=Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World&dcm_cid=1356859464.1753477218&available_ga=%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D&ga_info=%7B%22status%22%3A%22OK%22%2C%22ga_tracking_id%22%3A%22UA-131130443-2%3BG-5DZXYDY43N%22%2C%22ga_client_id%22%3A%221356859464.1753477218%22%2C%22shpt%22%3A%22Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World%22%2C%22dcm_cid%22%3A%221356859464.1753477218%22%2C%22mntnis%22%3A%7B%7D%2C%22execution_workflow%22%3A%7B%22iteration%22%3A4%2C%22shpt%22%3A%22OK%22%2C%22dcm_cid%22%3A%22OK%22%7D%2C%22available_ga%22%3A%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D%7D&hardcoded_ga=G-5DZXYDY43N%3BUA-131130443-2&meta_tag_data=%5B%7B%22description.content%22%3A%22Explore%20career%20opportunities%20at%20Deel%20and%20be%20part%20of%20a%20global%20team%20in%20over%2080%20countries.%20Work-from-anywhere%20and%20contribute%20to%20shaping%20the%20future%20of%20remote%20work.%22%7D%5D&dxver=4.0.0&shaid=32887&plh=https%3A%2F%2Fwww.deel.com%2Fcareers%2Fopen-roles%2F&cb=65342039706445240term%3Dvalue&shoid=1356859464.1753477218&shadditional=googletagmanager%3Dtrue%2Cga4%3Dtrue[22m
+[2m    - user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/139.0.7258.5 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+[2m    - referer: https://www.deel.com/[22m
+[2m    - sec-ch-ua: "Not;A=Brand";v="99", "HeadlessChrome";v="139", "Chromium";v="139"[22m
+[2m    - sec-ch-ua-mobile: ?0[22m
+[2m    - sec-ch-ua-platform: "macOS"[22m
+
+    at <anonymous> (/Users/ayuboketch/Desktop/Repos/Job-Notifier-Manager/server/index.ts:190:36)
+Error during route interception (URL: https://px.mountain.com/st?ga_tracking_id=G-5DZXYDY43N%3BUA-131130443-2&ga_client_id=1356859464.1753477218&shpt=Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World&dcm_cid=1356859464.1753477218&available_ga=%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D&ga_info=%7B%22status%22%3A%22OK%22%2C%22ga_tracking_id%22%3A%22UA-131130443-2%3BG-5DZXYDY43N%22%2C%22ga_client_id%22%3A%221356859464.1753477218%22%2C%22shpt%22%3A%22Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World%22%2C%22dcm_cid%22%3A%221356859464.1753477218%22%2C%22mntnis%22%3A%7B%7D%2C%22execution_workflow%22%3A%7B%22iteration%22%3A5%2C%22shpt%22%3A%22OK%22%2C%22dcm_cid%22%3A%22OK%22%7D%2C%22available_ga%22%3A%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D%7D&hardcoded_ga=G-5DZXYDY43N%3BUA-131130443-2&meta_tag_data=%5B%7B%22description.content%22%3A%22Explore%20career%20opportunities%20at%20Deel%20and%20be%20part%20of%20a%20global%20team%20in%20over%2080%20countries.%20Work-from-anywhere%20and%20contribute%20to%20shaping%20the%20future%20of%20remote%20work.%22%7D%5D&dxver=4.0.0&shaid=32887&plh=https%3A%2F%2Fwww.deel.com%2Fcareers%2Fopen-roles%2F&cb=81572652287613340term%3Dvalue&shoid=1356859464.1753477218&shadditional=googletagmanager%3Dtrue%2Cga4%3Dtrue): route.fetch: Parse Error: Missing expected CR after response line
+Call log:
+[2m  - → GET https://px.mountain.com/st?ga_tracking_id=G-5DZXYDY43N%3BUA-131130443-2&ga_client_id=1356859464.1753477218&shpt=Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World&dcm_cid=1356859464.1753477218&available_ga=%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D&ga_info=%7B%22status%22%3A%22OK%22%2C%22ga_tracking_id%22%3A%22UA-131130443-2%3BG-5DZXYDY43N%22%2C%22ga_client_id%22%3A%221356859464.1753477218%22%2C%22shpt%22%3A%22Careers%20at%20Deel%20%7C%20Work%20Remote%20Anywhere%20In%20The%20World%22%2C%22dcm_cid%22%3A%221356859464.1753477218%22%2C%22mntnis%22%3A%7B%7D%2C%22execution_workflow%22%3A%7B%22iteration%22%3A5%2C%22shpt%22%3A%22OK%22%2C%22dcm_cid%22%3A%22OK%22%7D%2C%22available_ga%22%3A%5B%7B%22id%22%3A%22G-5DZXYDY43N%22%2C%22sess_id%22%3A%221753477218%22%7D%5D%7D&hardcoded_ga=G-5DZXYDY43N%3BUA-131130443-2&meta_tag_data=%5B%7B%22description.content%22%3A%22Explore%20career%20opportunities%20at%20Deel%20and%20be%20part%20of%20a%20global%20team%20in%20over%2080%20countries.%20Work-from-anywhere%20and%20contribute%20to%20shaping%20the%20future%20of%20remote%20work.%22%7D%5D&dxver=4.0.0&shaid=32887&plh=https%3A%2F%2Fwww.deel.com%2Fcareers%2Fopen-roles%2F&cb=81572652287613340term%3Dvalue&shoid=1356859464.1753477218&shadditional=googletagmanager%3Dtrue%2Cga4%3Dtrue[22m
+[2m    - user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/139.0.7258.5 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+[2m    - referer: https://www.deel.com/[22m
+[2m    - sec-ch-ua: "Not;A=Brand";v="99", "HeadlessChrome";v="139", "Chromium";v="139"[22m
+[2m    - sec-ch-ua-mobile: ?0[22m
+[2m    - sec-ch-ua-platform: "macOS"[22m
+
+    at <anonymous> (/Users/ayuboketch/Desktop/Repos/Job-Notifier-Manager/server/index.ts:190:36)
+[CRON] SUCCESS: Added 6 new jobs for deel
+No API jobs found for impactpool, falling back to HTML scraping.
+[SCRAPER] Scraping impactpool without AI...
+[2025-07-25T21:01:01.504Z] GET /api/companies
+Fetching companies...
+[2025-07-25T21:01:01.524Z] GET /api/jobs
+Fetching jobs with company names...
+Found 2 companies
+Found 0 jobs with company names
+[2025-07-25T21:01:31.513Z] GET /api/jobs
+Fetching jobs with company names...
+[2025-07-25T21:01:31.518Z] GET /api/companies
+Fetching companies...
+Found 2 companies
+Found 0 jobs with company names
+[SCRAPER] Found 24 potential jobs
+[CRON] SUCCESS: Added 24 new jobs for impactpool
+[CRON] Finished scheduled job check.
+[2025-07-25T21:02:01.525Z] GET /api/jobs
+Fetching jobs with company names...
+[2025-07-25T21:02:01.529Z] GET /api/companies
+Fetching companies...
+Found 2 companies
+Found 0 jobs with company names
+[2025-07-25T21:02:31.526Z] GET /api/companies
+Fetching companies...
+[2025-07-25T21:02:31.531Z] GET /api/jobs
+Fetching jobs with company names...
+Found 0 jobs with company names
+Found 2 companies
+[2025-07-25T21:03:01.540Z] GET /api/companies
+Fetching companies...
+[2025-07-25T21:03:01.544Z] GET /api/jobs
+Fetching jobs with company names...
+Found 2 companies
+Found 0 jobs with company names

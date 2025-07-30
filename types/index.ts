@@ -1,6 +1,7 @@
 // types/index.ts
 // Re-export database types for consistency
 export * from './database';
+import { Job, JobInsert, JobUpdate } from './database';
 
 // Legacy interfaces for backward compatibility (deprecated - use database types instead)
 export interface User {

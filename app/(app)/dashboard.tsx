@@ -2,16 +2,16 @@
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Linking,
   Modal,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AddCompanyModal from "../../components/AddCompanyModal";
@@ -49,8 +49,7 @@ interface JobAlert {
   requirements?: string[] | null;
 }
 
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL || "http://192.168.100.36:3000/api";
+const API_BASE_URL = process.env["EXPO_PUBLIC_API_BASE_URL"]!;
 
 // Enhanced fetch function with proper error handling
 async function apiRequest(url: string, options: RequestInit = {}) {
@@ -104,6 +103,8 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingCompany, setAddingCompany] = useState(false);
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Use a ref to hold the interval ID
   const refreshIntervalRef = useRef<number | null>(null);
@@ -144,10 +145,10 @@ export default function DashboardScreen() {
     if (job.companyName) {
       return job.companyName;
     }
-    if (job.company && typeof job.company === 'object' && job.company.name) {
+    if (job.company && typeof job.company === "object" && job.company.name) {
       return job.company.name;
     }
-    if (job.company && typeof job.company === 'string') {
+    if (job.company && typeof job.company === "string") {
       return job.company;
     }
     return job.company_name || "Unknown Company";
@@ -193,24 +194,22 @@ export default function DashboardScreen() {
         ]);
         const fetchedCompanies = companiesData || [];
         const fetchedJobs = jobsData || [];
-        
+
         // Smart merging: only replace if we actually got data
-        if (fetchedCompanies.length > 0 || isInitial) {
-          setTrackedCompanies(fetchedCompanies);
-        }
-        
+        // Replace the jobs setting part:
         if (fetchedJobs.length > 0 || isInitial) {
           const mappedJobs = fetchedJobs.map(mapJobData);
-          setJobs(prevJobs => {
-            // If this is a refresh and we have no new jobs, keep existing ones
+          setJobs((prevJobs) => {
             if (!isInitial && mappedJobs.length === 0 && prevJobs.length > 0) {
-              console.log("⚠️ No jobs from server, keeping existing jobs");
-              return prevJobs;
+              return prevJobs; // Keep existing if refresh failed
             }
-            return mappedJobs;
+            // Merge new jobs, avoid duplicates
+            const existingUrls = new Set(prevJobs.map((j) => j.url));
+            const newJobs = mappedJobs.filter((j) => !existingUrls.has(j.url));
+            return isInitial ? mappedJobs : [...prevJobs, ...newJobs];
           });
         }
-        
+
         console.log(
           `✅ Loaded ${fetchedCompanies.length} companies and ${fetchedJobs.length} jobs`
         );
@@ -252,6 +251,21 @@ export default function DashboardScreen() {
     };
   }, [fetchData]);
 
+  const handleManualRefresh = async () => {
+    try {
+      setLoading(true);
+      const result = await apiRequest(`${API_BASE_URL}/companies/refresh`, {
+        method: "POST",
+      });
+      Alert.alert("Refresh Complete", `Found ${result.newJobs} new jobs!`);
+      fetchData(true); // Reload data
+    } catch (error) {
+      Alert.alert("Refresh Failed", error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddCompany = async (companyData: {
     url: string;
     careerPageUrl?: string;
@@ -280,20 +294,24 @@ export default function DashboardScreen() {
         if (newCompany) {
           setTrackedCompanies((prev) => {
             // Check if company already exists
-            const exists = prev.find(c => c.id === newCompany.id);
+            const exists = prev.find((c) => c.id === newCompany.id);
             if (exists) {
               return prev; // Don't add duplicate
             }
             return [...prev, newCompany];
           });
         }
-        
+
         if (newJobs.length > 0) {
           setJobs((prev) => {
             // Merge new jobs with existing ones, avoiding duplicates
-            const existingUrls = new Set(prev.map(job => job.url));
-            const uniqueNewJobs = newJobs.filter(job => !existingUrls.has(job.url));
-            console.log(`Adding ${uniqueNewJobs.length} new unique jobs out of ${newJobs.length} found`);
+            const existingUrls = new Set(prev.map((job) => job.url));
+            const uniqueNewJobs = newJobs.filter(
+              (job: { url: string }) => !existingUrls.has(job.url)
+            );
+            console.log(
+              `Adding ${uniqueNewJobs.length} new unique jobs out of ${newJobs.length} found`
+            );
             return [...prev, ...uniqueNewJobs];
           });
         }
@@ -344,7 +362,7 @@ export default function DashboardScreen() {
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
       setShowJobModal(false);
       Alert.alert("Success", "Job removed successfully");
-    } catch (e) {
+    } catch (_e) {
       Alert.alert("Error", "Failed to delete job");
     }
   };
@@ -372,7 +390,10 @@ export default function DashboardScreen() {
               Alert.alert("Success", "Company deleted successfully.");
             } catch (e) {
               const error = e as Error;
-              Alert.alert("Error", `Failed to delete company: ${error.message}`);
+              Alert.alert(
+                "Error",
+                `Failed to delete company: ${error.message}`
+              );
             }
           },
         },
@@ -416,14 +437,14 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
+      <ScrollView
         style={styles.mainScrollView}
         refreshControl={
-          <RefreshControl 
-            refreshing={loading} 
-            onRefresh={() => fetchData(true)}
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={handleManualRefresh}
             tintColor="#3B82F6"
-            colors={['#3B82F6']}
+            colors={["#3B82F6"]}
           />
         }
       >
@@ -470,38 +491,98 @@ export default function DashboardScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Activity</Text>
+              <TouchableOpacity
+                onPress={() => router.push("/(app)/RecentActivity")}
+              >
+                <Text style={styles.seeAllButton}>See All</Text>
+              </TouchableOpacity>
+            </View>
             {recentActivityJobs.length === 0 ? (
               <Text style={styles.emptyText}>No recent jobs found.</Text>
             ) : (
-              recentActivityJobs.map((job) => (
-                <TouchableOpacity
-                  key={job.id}
-                  style={styles.jobCard}
-                  onPress={() => handleJobPress(job)}
-                >
-                  <Text style={styles.jobTitle}>{job.title}</Text>
-                  <Text style={styles.jobCompany}>{getCompanyDisplayName(job)}</Text>
-                </TouchableOpacity>
-              ))
+              <View style={styles.jobListContainer}>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                  {recentActivityJobs.map((job) => (
+                    <TouchableOpacity
+                      key={job.id}
+                      style={styles.jobCard}
+                      onPress={() => handleJobPress(job)}
+                    >
+                      <View style={styles.jobCardHeader}>
+                        <Text style={styles.jobTitle} numberOfLines={2}>
+                          {job.title}
+                        </Text>
+                        {job.status === "New" && (
+                          <View style={styles.newLabelContainer}>
+                            <Text style={styles.newLabelText}>New</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.jobCompany}>
+                        {getCompanyDisplayName(job)}
+                      </Text>
+                      <View style={styles.jobInfoContainer}>
+                        <Text style={styles.jobInfo}>
+                          Salary: {job.salary || "N/A"}
+                        </Text>
+                        <Text style={styles.jobInfo}>
+                          Deadline:{" "}
+                          {job.applicationDeadline
+                            ? new Date(
+                                job.applicationDeadline
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
             )}
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Tracked Companies</Text>
             {trackedCompanies.length === 0 ? (
-              <Text style={styles.emptyText}>You are not tracking any companies yet.</Text>
+              <Text style={styles.emptyText}>
+                You are not tracking any companies yet.
+              </Text>
             ) : (
               trackedCompanies.map((company) => (
-                <View key={company.id} style={styles.companyCard}>
+                <TouchableOpacity
+                  key={company.id}
+                  style={styles.companyCard}
+                  onPress={() => {
+                    Alert.alert(company.name, "What would you like to do?", [
+                      { text: "Cancel", style: "cancel" },
+                      {
+                        text: "Add New Search",
+                        onPress: () => setShowAddCompanyModal(true),
+                      },
+                      {
+                        text: "Edit Current",
+                        onPress: () => {
+                          setEditingCompany(company);
+                          setIsEditing(true);
+                          setShowAddCompanyModal(true);
+                        },
+                      },
+                    ]);
+                  }}
+                >
                   <Text style={styles.companyName}>{company.name}</Text>
                   <TouchableOpacity
                     style={styles.companyDeleteButton}
-                    onPress={() => handleDeleteCompany(company.id)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCompany(company.id);
+                    }}
                   >
                     <Text style={styles.companyDeleteButtonText}>Delete</Text>
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
               ))
             )}
           </View>
@@ -510,8 +591,14 @@ export default function DashboardScreen() {
 
       <AddCompanyModal
         visible={showAddCompanyModal}
-        onClose={() => setShowAddCompanyModal(false)}
+        onClose={() => {
+          setShowAddCompanyModal(false);
+          setEditingCompany(null);
+          setIsEditing(false);
+        }}
         onAddCompany={handleAddCompany}
+        editingCompany={editingCompany}
+        isEditing={isEditing}
       />
       <CompanyListModal
         visible={showCompaniesModal}
@@ -557,48 +644,61 @@ export default function DashboardScreen() {
             </View>
             <ScrollView style={styles.modalContent}>
               <Text style={styles.jobDetailTitle}>{selectedJob.title}</Text>
-              <Text style={styles.jobDetailCompany}>{getCompanyDisplayName(selectedJob)}</Text>
-              
+              <Text style={styles.jobDetailCompany}>
+                {getCompanyDisplayName(selectedJob)}
+              </Text>
+
               <View style={styles.jobDetailSection}>
                 {selectedJob.description && (
                   <View style={styles.detailItem}>
                     <Text style={styles.detailLabel}>📋 Job Description</Text>
-                    <Text style={styles.jobDetailDescription}>{selectedJob.description}</Text>
-                  </View>
-                )}
-                
-                {selectedJob.salary && (
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>💰 Salary</Text>
-                    <Text style={styles.jobDetailSalary}>{selectedJob.salary}</Text>
-                  </View>
-                )}
-                
-                {selectedJob.applicationDeadline && (
-                  <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>⏰ Application Deadline</Text>
-                    <Text style={styles.jobDetailDeadline}>
-                      {new Date(selectedJob.applicationDeadline).toLocaleDateString()}
+                    <Text style={styles.jobDetailDescription}>
+                      {selectedJob.description}
                     </Text>
                   </View>
                 )}
-                
-                {selectedJob.requirements && selectedJob.requirements.length > 0 && (
+
+                {selectedJob.salary && (
                   <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>📚 Requirements</Text>
-                    {selectedJob.requirements.map((req, index) => (
-                      <Text key={index} style={styles.requirementItem}>• {req}</Text>
-                    ))}
+                    <Text style={styles.detailLabel}>💰 Salary</Text>
+                    <Text style={styles.jobDetailSalary}>
+                      {selectedJob.salary}
+                    </Text>
                   </View>
                 )}
-                
+
+                {selectedJob.applicationDeadline && (
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>
+                      ⏰ Application Deadline
+                    </Text>
+                    <Text style={styles.jobDetailDeadline}>
+                      {new Date(
+                        selectedJob.applicationDeadline
+                      ).toLocaleDateString()}
+                    </Text>
+                  </View>
+                )}
+
+                {selectedJob.requirements &&
+                  selectedJob.requirements.length > 0 && (
+                    <View style={styles.detailItem}>
+                      <Text style={styles.detailLabel}>📚 Requirements</Text>
+                      {selectedJob.requirements.map((req, index) => (
+                        <Text key={index} style={styles.requirementItem}>
+                          • {req}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
+
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>🎯 Matched Keywords</Text>
                   <Text style={styles.matchedKeywordsText}>
                     {selectedJob.matchedKeywords?.join(", ") || "N/A"}
                   </Text>
                 </View>
-                
+
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>📅 Found On</Text>
                   <Text style={styles.dateFoundText}>
@@ -606,7 +706,7 @@ export default function DashboardScreen() {
                   </Text>
                 </View>
               </View>
-              
+
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={styles.applyButton}
@@ -625,14 +725,16 @@ export default function DashboardScreen() {
           </SafeAreaView>
         </Modal>
       )}
-      
+
       {/* Loading overlay when adding company */}
       {addingCompany && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingCard}>
             <ActivityIndicator size="large" color="#3B82F6" />
             <Text style={styles.loadingOverlayText}>Adding Company...</Text>
-            <Text style={styles.loadingOverlaySubtext}>Finding jobs and processing data</Text>
+            <Text style={styles.loadingOverlaySubtext}>
+              Finding jobs and processing data
+            </Text>
           </View>
         </View>
       )}
@@ -712,21 +814,69 @@ const styles = StyleSheet.create({
   },
   addButtonText: { color: "white", fontSize: 16, fontWeight: "600" },
   section: { marginBottom: 32 },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: "bold",
     color: "white",
-    marginBottom: 12,
+  },
+  seeAllButton: {
+    color: "#3B82F6",
+    fontSize: 16,
   },
   emptyText: { color: "#94A3B8", textAlign: "center", marginTop: 16 },
+  jobListContainer: {
+    height: 300, // Or any other fixed height
+    borderColor: "#334155",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 8,
+  },
   jobCard: {
     backgroundColor: "#1F2937",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
-  jobTitle: { fontSize: 18, fontWeight: "600", color: "white" },
+  jobCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  jobTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "white",
+    flex: 1, // Allow title to take up available space
+  },
+  newLabelContainer: {
+    backgroundColor: "#10B981",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: 8,
+  },
+  newLabelText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
   jobCompany: { fontSize: 14, color: "#94A3B8", marginTop: 4 },
+  jobInfoContainer: {
+    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  jobInfo: {
+    fontSize: 14,
+    color: "#CBD5E1",
+  },
   companyCard: {
     backgroundColor: "#1F2937",
     borderRadius: 12,
@@ -768,11 +918,11 @@ const styles = StyleSheet.create({
     color: "white",
     marginBottom: 8,
   },
-  jobDetailCompany: { 
-    fontSize: 16, 
-    color: "#94A3B8", 
+  jobDetailCompany: {
+    fontSize: 16,
+    color: "#94A3B8",
     marginBottom: 24,
-    fontStyle: "italic"
+    fontStyle: "italic",
   },
   jobDetailSection: {
     marginBottom: 24,
@@ -822,6 +972,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     gap: 12,
     marginTop: 16,
+    paddingBottom: 24,
   },
   applyButton: {
     backgroundColor: "#3B82F6",

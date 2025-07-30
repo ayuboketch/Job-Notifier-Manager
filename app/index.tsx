@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import AnimatedGradientBackground from "../components/AnimatedGradientBackground"; // Assuming path is correct
-import DebugSupabase from "../components/DebugSupabase";
+// import DebugSupabase from "../components/DebugSupabase";
 
 export default function AuthHomeScreen() {
   const router = useRouter();

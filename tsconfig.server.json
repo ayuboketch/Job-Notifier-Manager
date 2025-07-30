@@ -2,7 +2,7 @@
   "compilerOptions": {
     /* Base Options */
     "outDir": "./dist",
-    "rootDir": "./server",
+    "rootDir": "./",
     "target": "es2020",
     "module": "commonjs",
 
@@ -16,10 +16,11 @@
     "skipLibCheck": true,
     
     /* Type Definitions */
-    "types": ["node"]
+    "types": ["node", "jest"]
   },
   "include": [
-    "server/**/*.ts"
+    "server/**/*.ts",
+    "types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

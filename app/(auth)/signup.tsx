@@ -116,7 +116,7 @@ export default function SignupScreen() {
               <View style={styles.verificationContent}>
                 <Text style={styles.verificationTitle}>Check Your Email</Text>
                 <Text style={styles.verificationText}>
-                  We've sent a verification link to your inbox. Please click the
+                  We&apos;ve sent a verification link to your inbox. Please click the
                   link to activate your account, then return to the login
                   screen.
                 </Text>

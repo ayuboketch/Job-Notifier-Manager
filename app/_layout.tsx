@@ -36,7 +36,7 @@ function RootLayoutNav() {
         router.replace("/");
       }
     }
-  }, [loading, user, hasCompletedOnboarding]);
+  }, [loading, user, hasCompletedOnboarding, router, segments]);
 
   // This stable layout prevents errors and white screens.
   // The useEffect above handles all navigation.

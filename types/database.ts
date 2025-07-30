@@ -28,6 +28,7 @@ export const JobSchema = z.object({
   salary: z.string().nullable().optional(),
   requirements: z.array(z.string()).nullable().optional(),
   applicationDeadline: z.string().nullable().optional(),
+  company: z.any().optional(),
 });
 
 // Create input schemas for database operations (omit auto-generated fields)

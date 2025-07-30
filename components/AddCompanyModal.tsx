@@ -1,5 +1,4 @@
-//components/addCompanyModal.ts
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +14,34 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// Add these types/constants - you may need to adjust based on your actual API setup
+const API_BASE_URL =
+  process.env["EXPO_PUBLIC_API_URL"] || "https://your-api-url.com";
+
+const apiRequest = async (url: string, options: RequestInit) => {
+  const response = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+interface Company {
+  id: string;
+  url: string;
+  keywords?: string[];
+  priority?: string;
+  check_interval_minutes?: number;
+}
+
 interface AddCompanyModalProps {
   visible: boolean;
   onClose: () => void;
@@ -26,12 +53,17 @@ interface AddCompanyModalProps {
     checkInterval: string;
   }) => Promise<void>;
   onCompanyAdded?: () => void;
+  editingCompany?: Company;
+  isEditing?: boolean;
 }
 
 export default function AddCompanyModal({
   visible,
   onClose,
   onAddCompany,
+  onCompanyAdded,
+  editingCompany,
+  isEditing = false,
 }: AddCompanyModalProps) {
   const [companyUrl, setCompanyUrl] = useState("");
   const [jobKeywords, setJobKeywords] = useState("");
@@ -40,7 +72,20 @@ export default function AddCompanyModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [careerPageUrl, setCareerPageUrl] = useState("");
-  const [progress, setProgress] = useState<null | string>(null);
+  const [progress, setProgress] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editingCompany && isEditing) {
+      setCompanyUrl(editingCompany.url.replace("https://www.", ""));
+      setJobKeywords(editingCompany.keywords?.join(", ") || "");
+      setPriority(editingCompany.priority || "medium");
+      setCheckInterval(
+        `${Math.floor(
+          (editingCompany.check_interval_minutes || 1440) / 1440
+        )} day`
+      );
+    }
+  }, [editingCompany, isEditing]);
 
   const validateUrl = (url: string): boolean => {
     try {
@@ -58,16 +103,16 @@ export default function AddCompanyModal({
     }
     return url;
   };
+
   const extractCompanyName = (url: string): string => {
     try {
       const hostname = new URL(url).hostname;
-      return hostname.replace("www.", "").split(".")[0];
+      return hostname.replace("www.", "").split(".")[0] as string;
     } catch {
       return "company";
     }
   };
 
-  // 2.  handleAddCompany with live messages
   const handleAddCompany = async () => {
     setError(null);
     if (!companyUrl.trim()) {
@@ -108,15 +153,34 @@ export default function AddCompanyModal({
     }, 4000); // Reduced interval for more frequent updates
 
     try {
-      await onAddCompany({
-        url: formattedUrl,
-        careerPageUrl: careerPageUrl.trim()
-          ? `${formattedUrl}${careerPageUrl.trim()}`
-          : undefined,
-        keywords: jobKeywords.trim(),
-        priority,
-        checkInterval,
-      });
+      if (isEditing && editingCompany) {
+        await apiRequest(`${API_BASE_URL}/companies/${editingCompany.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            keywords: jobKeywords.trim(),
+            priority,
+            checkInterval,
+          }),
+        });
+        Alert.alert("Success", "Company updated successfully!");
+        if (onCompanyAdded) {
+          onCompanyAdded();
+        }
+      } else {
+        await onAddCompany({
+          url: formattedUrl,
+          ...(careerPageUrl.trim() && {
+            careerPageUrl: `${formattedUrl}${careerPageUrl.trim()}`,
+          }),
+          keywords: jobKeywords.trim(),
+          priority,
+          checkInterval,
+        });
+        if (onCompanyAdded) {
+          onCompanyAdded();
+        }
+      }
+
       clearInterval(timer);
       setProgress("✅ Success! Jobs found and added.");
       // Brief delay to show success message
@@ -141,7 +205,7 @@ export default function AddCompanyModal({
     }
   };
 
-  // 3.  overlay component
+  // Progress overlay component
   const ProgressOverlay = () =>
     progress ? (
       <View style={styles.overlay}>
@@ -161,6 +225,7 @@ export default function AddCompanyModal({
     setCheckInterval("1 day");
     setError(null);
     setIsProcessing(false);
+    setProgress(null);
     onClose();
   };
 
@@ -189,7 +254,9 @@ export default function AddCompanyModal({
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.modalTitle}>Add Company</Text>
+            <Text style={styles.modalTitle}>
+              {isEditing ? "Edit Company" : "Add Company"}
+            </Text>
 
             <TouchableOpacity
               onPress={handleAddCompany}
@@ -204,7 +271,13 @@ export default function AddCompanyModal({
                     styles.disabledButton,
                 ]}
               >
-                {isProcessing ? "Adding..." : "Add"}
+                {isProcessing
+                  ? isEditing
+                    ? "Updating..."
+                    : "Adding..."
+                  : isEditing
+                  ? "Update"
+                  : "Add"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -217,12 +290,17 @@ export default function AddCompanyModal({
                 {progress || "Processing..."}
               </Text>
               <Text style={styles.loadingSubtext}>
-                {progress?.includes("Success!") 
-                  ? "Redirecting to dashboard..." 
+                {progress?.includes("Success!")
+                  ? "Redirecting to dashboard..."
                   : "This may take 30-60 seconds"}
               </Text>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${Math.min((Date.now() % 60000) / 600, 100)}%` }]} />
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: `${Math.min((Date.now() % 60000) / 600, 100)}%` },
+                  ]}
+                />
               </View>
             </View>
           )}
@@ -249,7 +327,7 @@ export default function AddCompanyModal({
                   style={styles.inputField}
                   value={companyUrl}
                   onChangeText={(t) => {
-                    setCompanyUrl(t.replace(/^(https?:\/\/)?(www\.)?/, ''));
+                    setCompanyUrl(t.replace(/^(https?:\/\/)?(www\.)?/, ""));
                     setError(null);
                   }}
                   placeholder="company.com"
@@ -260,20 +338,27 @@ export default function AddCompanyModal({
                 />
               </View>
               <Text style={styles.helpText}>
-                We’ll automatically fill it in career page
+                We'll automatically find the career page
               </Text>
             </View>
+
             <View style={styles.section}>
               <Text style={styles.label}>Career / Jobs URL </Text>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputPrefix} numberOfLines={1} ellipsizeMode="tail">
-                  {companyUrl ? `https://www.${companyUrl}` : 'https://www.company.com'}
+                <Text
+                  style={styles.inputPrefix}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {companyUrl
+                    ? `https://www.${companyUrl}`
+                    : "https://www.company.com"}
                 </Text>
                 <TextInput
                   style={styles.inputField}
                   value={careerPageUrl}
                   onChangeText={(t) => setCareerPageUrl(t)}
-                  placeholder="/jobs or /search"
+                  placeholder="/jobs or /careers"
                   placeholderTextColor="#64748B"
                   autoCapitalize="none"
                   keyboardType="url"
@@ -301,7 +386,7 @@ export default function AddCompanyModal({
                 editable={!isProcessing}
               />
               <Text style={styles.helpText}>
-                Separate with commas. We’ll notify you when jobs match.
+                Separate with commas. We'll notify you when jobs match.
               </Text>
             </View>
 
@@ -377,10 +462,12 @@ export default function AddCompanyModal({
   );
 }
 
+// You'll need to add these styles - they were referenced but not included
 const styles = StyleSheet.create({
-  modalContainer: { flex: 1, backgroundColor: "#141a1f" },
-
-  /* Header */
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -388,59 +475,120 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#334155",
+    borderBottomColor: "#E5E7EB",
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", color: "white" },
-  modalCancelButton: { color: "#94A3B8", fontSize: 16 },
-  modalSaveButton: { color: "#3B82F6", fontSize: 16, fontWeight: "600" },
-  disabledButton: { color: "#64748B" },
-  disabledText: { color: "#64748B" },
-
-  /* Scroll */
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 },
-
-  /* Sections */
-  section: { marginBottom: 28 },
-
-  /* Inputs */
-  label: {
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  modalCancelButton: {
+    fontSize: 16,
+    color: "#6B7280",
+  },
+  modalSaveButton: {
     fontSize: 16,
     fontWeight: "600",
-    color: "white",
+    color: "#3B82F6",
+  },
+  disabledButton: {
+    color: "#9CA3AF",
+  },
+  disabledText: {
+    color: "#9CA3AF",
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111827",
+    marginTop: 12,
+    textAlign: "center",
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  progressBar: {
+    width: "100%",
+    height: 4,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 2,
+    marginTop: 12,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: "#3B82F6",
+    borderRadius: 2,
+  },
+  errorContainer: {
+    padding: 16,
+    backgroundColor: "#FEF2F2",
+    borderBottomWidth: 1,
+    borderBottomColor: "#FECACA",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#DC2626",
+    textAlign: "center",
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111827",
     marginBottom: 8,
   },
-  textInput: {
-    backgroundColor: "#1E293B",
-    borderWidth: 1,
-    borderColor: "#334155",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: "white",
-    fontSize: 16,
-    minHeight: 48,
-  },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E293B',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: "#D1D5DB",
     borderRadius: 8,
+    backgroundColor: "#FFFFFF",
   },
   inputPrefix: {
-    color: '#94A3B8',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
     fontSize: 16,
-    paddingLeft: 14,
+    color: "#6B7280",
+    backgroundColor: "#F9FAFB",
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
   },
   inputField: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    color: 'white',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
     fontSize: 16,
-    minHeight: 48,
+    color: "#111827",
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: "#111827",
+    backgroundColor: "#FFFFFF",
   },
   multilineInput: {
     minHeight: 80,
@@ -448,11 +596,9 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    color: "#94A3B8",
-    marginTop: 6,
+    color: "#6B7280",
+    marginTop: 4,
   },
-
-  /* Chips */
   chipRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -460,45 +606,22 @@ const styles = StyleSheet.create({
   },
   chip: {
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#334155",
-    backgroundColor: "#1E293B",
+    borderColor: "#D1D5DB",
+    backgroundColor: "#FFFFFF",
   },
   chipActive: {
     backgroundColor: "#3B82F6",
     borderColor: "#3B82F6",
   },
-  chipText: { color: "#94A3B8", fontSize: 14, fontWeight: "500" },
-  chipTextActive: { color: "white" },
-
-  /* Loading / Error */
-  loadingContainer: {
-    alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    marginTop: 16,
-  },
-  loadingText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "500",
-    marginTop: 12,
-  },
-  loadingSubtext: { color: "#94A3B8", fontSize: 14, marginTop: 4 },
-  errorContainer: {
-    backgroundColor: "#DC2626",
-    padding: 12,
-    marginTop: 16,
-    marginHorizontal: 20,
-    borderRadius: 8,
-  },
-  errorText: {
-    color: "white",
+  chipText: {
     fontSize: 14,
-    fontWeight: "500",
-    textAlign: "center",
+    color: "#6B7280",
+  },
+  chipTextActive: {
+    color: "#FFFFFF",
   },
   overlay: {
     position: "absolute",
@@ -506,28 +629,14 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#141a1fe6",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 10,
   },
   overlayText: {
-    color: "white",
     fontSize: 16,
-    marginTop: 12,
-    textAlign: "center",
-  },
-  progressBar: {
-    width: "80%",
-    height: 4,
-    backgroundColor: "#334155",
-    borderRadius: 2,
+    color: "#FFFFFF",
     marginTop: 16,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#3B82F6",
-    borderRadius: 2,
+    textAlign: "center",
   },
 });

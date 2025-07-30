@@ -15,7 +15,7 @@ const AnimatedGradientBackground = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     progress.value = withRepeat(withTiming(1, { duration: 7000 }), -1, true);
-  }, []);
+  }, [progress]);
 
   const animatedStyle = useAnimatedStyle(() => {
     return {

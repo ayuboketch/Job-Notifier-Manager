@@ -26,6 +26,7 @@ interface JobAlert {
   priority?: string;
   salary?: string | null;
   requirements?: string[] | null;
+  duties?: string[] | null; // New field for job duties
 }
 
 interface JobListModalProps {
@@ -45,31 +46,31 @@ export default function JobListModal({
 }: JobListModalProps) {
   const [selectedJob, setSelectedJob] = React.useState<JobAlert | null>(null);
   const [showJobDetail, setShowJobDetail] = React.useState(false);
-  
+
   // Helper function to get company display name from various formats
   const getCompanyDisplayName = (job: JobAlert): string => {
     // Priority order: companyName (new derived field) > nested company.name > legacy company string
     if (job.companyName) {
       return job.companyName;
     }
-    if (job.company && typeof job.company === 'object' && job.company.name) {
+    if (job.company && typeof job.company === "object" && job.company.name) {
       return job.company.name;
     }
-    if (job.company && typeof job.company === 'string') {
+    if (job.company && typeof job.company === "string") {
       return job.company;
     }
     return "Unknown Company";
   };
 
   const handleJobPress = (job: JobAlert) => {
-  if (onJobPress) {
-    onJobPress(job);
-    onClose(); // Close the modal when job is pressed
-  } else {
-    setSelectedJob(job);
-    setShowJobDetail(true);
-  }
-};
+    if (onJobPress) {
+      onJobPress(job);
+      onClose(); // Close the modal when job is pressed
+    } else {
+      setSelectedJob(job);
+      setShowJobDetail(true);
+    }
+  };
 
   const handleApplyToJob = async () => {
     if (selectedJob?.url) {
@@ -130,7 +131,9 @@ export default function JobListModal({
                     )}
                   </View>
 
-                  <Text style={styles.jobCompany}>{getCompanyDisplayName(job)}</Text>
+                  <Text style={styles.jobCompany}>
+                    {getCompanyDisplayName(job)}
+                  </Text>
 
                   {job.salary && (
                     <Text style={styles.jobSalary}>💰 {job.salary}</Text>
@@ -156,7 +159,7 @@ export default function JobListModal({
         </SafeAreaView>
       </Modal>
 
-      {/* Job Detail Modal */}
+      {/* ── Job Detail Modal ─────────────────────────────────────────── */}
       <Modal
         visible={showJobDetail}
         animationType="slide"
@@ -164,78 +167,92 @@ export default function JobListModal({
         onRequestClose={() => setShowJobDetail(false)}
       >
         <SafeAreaView style={styles.modalContainer}>
+          {/* Header */}
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowJobDetail(false)}>
               <Text style={styles.modalCloseButton}>Back</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Job Details</Text>
+            <Text style={styles.modalTitle} numberOfLines={1}>
+              {selectedJob?.title || "Job Details"}
+            </Text>
             <View style={styles.modalHeaderSpacer} />
           </View>
 
-          <ScrollView style={styles.modalContent}>
+          {/* Body */}
+          <ScrollView
+            style={styles.modalContent}
+            contentContainerStyle={{ paddingBottom: 40 }}
+          >
             {selectedJob && (
-              <View style={styles.jobDetailsContainer}>
+              <>
+                {/* Title & Company */}
                 <Text style={styles.jobDetailTitle}>{selectedJob.title}</Text>
                 <Text style={styles.jobDetailCompany}>
                   {getCompanyDisplayName(selectedJob)}
                 </Text>
 
-                <View style={styles.jobMetadata}>
+                {/* Quick Facts */}
+                <View style={styles.quickFacts}>
                   {selectedJob.salary && (
-                    <Text style={styles.metadataItem}>
-                      💰 Salary: {selectedJob.salary}
+                    <Text style={styles.quickFact}>
+                      💰 {selectedJob.salary}
                     </Text>
                   )}
-
                   {selectedJob.applicationDeadline && (
-                    <Text style={styles.metadataItem}>
+                    <Text style={styles.quickFact}>
                       ⏰ Deadline: {formatDate(selectedJob.applicationDeadline)}
                     </Text>
                   )}
-
-                  <Text style={styles.metadataItem}>
+                  <Text style={styles.quickFact}>
+                    📅 Found: {formatDate(selectedJob.dateFound)}
+                  </Text>
+                  <Text style={styles.quickFact}>
                     🎯 Keywords:{" "}
                     {selectedJob.matchedKeywords?.join(", ") || "N/A"}
                   </Text>
-
-                  <Text style={styles.metadataItem}>
-                    📊 Priority: {selectedJob.priority}
-                  </Text>
-
-                  <Text style={styles.metadataItem}>
-                    📅 Found: {formatDate(selectedJob.dateFound)}
-                  </Text>
-
-                  {selectedJob.requirements &&
-                    selectedJob.requirements.length > 0 && (
-                      <View style={styles.requirementsContainer}>
-                        <Text style={styles.metadataItem}>
-                          📋 Requirements:
-                        </Text>
-                        {selectedJob.requirements.map((req, index) => (
-                          <Text
-                            key={`req-${index}-${req.substring(0, 10)}`}
-                            style={styles.requirementItem}
-                          >
-                            • {req}
-                          </Text>
-                        ))}
-                      </View>
-                    )}
+                  {selectedJob.priority && (
+                    <Text style={styles.quickFact}>
+                      📊 Priority: {selectedJob.priority}
+                    </Text>
+                  )}
                 </View>
 
-                <Text style={styles.sectionTitle}>Job Description</Text>
-                <Text style={styles.jobDescription}>
-                  {selectedJob.description || "No description available"}
-                </Text>
+                {/* Description */}
+                {selectedJob.description && (
+                  <Section title="About this role">
+                    <Text style={styles.bodyText}>
+                      {selectedJob.description}
+                    </Text>
+                  </Section>
+                )}
 
+                {/* Duties / Responsibilities */}
+                {selectedJob.duties && selectedJob.duties.length > 0 && (
+                  <Section title="Key Duties & Responsibilities">
+                    {selectedJob.duties.map((duty, i) => (
+                      <Bullet key={`duty-${i}`} text={duty} />
+                    ))}
+                  </Section>
+                )}
+
+                {/* Requirements */}
+                {selectedJob.requirements &&
+                  selectedJob.requirements.length > 0 && (
+                    <Section title="Requirements">
+                      {selectedJob.requirements.map((req, i) => (
+                        <Bullet key={`req-${i}`} text={req} />
+                      ))}
+                    </Section>
+                  )}
+
+                {/* Apply Button */}
                 <TouchableOpacity
                   style={styles.applyButton}
                   onPress={handleApplyToJob}
                 >
                   <Text style={styles.applyButtonText}>🚀 Apply Now</Text>
                 </TouchableOpacity>
-              </View>
+              </>
             )}
           </ScrollView>
         </SafeAreaView>
@@ -243,6 +260,21 @@ export default function JobListModal({
     </>
   );
 }
+
+/* ---- Re-usable sub-components -------------------------------- */
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({
+  title,
+  children,
+}) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    {children}
+  </View>
+);
+
+const Bullet: React.FC<{ text: string }> = ({ text }) => (
+  <Text style={styles.listItem}>• {text}</Text>
+);
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -405,5 +437,35 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "600",
+  },
+  /* ---- Extra styles for detail page ---------------------------- */
+  quickFacts: {
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  quickFact: {
+    fontSize: 14,
+    color: "#444",
+    marginBottom: 4,
+  },
+  section: {
+    marginBottom: 22,
+  },
+  // sectionTitle: {
+  //   fontSize: 18,
+  //   fontWeight: "600",
+  //   marginBottom: 8,
+  //   color: "#000",
+  // },
+  bodyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#333",
+  },
+  listItem: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: "#333",
+    marginBottom: 4,
   },
 });

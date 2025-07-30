@@ -17,7 +17,7 @@ export default {
     splash: {
       image: "./assets/images/Job-Notifier-Manager.png",
       resizeMode: "contain",
-      backgroundColor: "#ffffff",
+      backgroundColor: "#0a06067c",
     },
 
     ios: {
@@ -30,7 +30,7 @@ export default {
       package: "com.anonymous.jobnotifiermanager",
       adaptiveIcon: {
         foregroundImage: "./assets/images/Job-Notifier-Manager.png",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#0c0808",
       },
       statusBar: {
         barStyle: "light-content",
@@ -49,6 +49,7 @@ export default {
     experiments: {
       typedRoutes: true,
     },
+    usesCleartextTraffic: true, // Allow cleartext traffic for development
 
     // FIX: The 'extra' block is removed.
     // Expo now automatically handles variables prefixed with EXPO_PUBLIC_ from your .env file.

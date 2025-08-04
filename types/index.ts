@@ -28,6 +28,15 @@ export interface TrackedWebsite {
 }
 
 export interface JobAlert {
+  dateFound: string | number | Date;
+  matchedKeywords: any;
+  requirements: any;
+  applicationDeadline: any;
+  salary: ReactNode;
+  salary: any;
+  title: ReactNode;
+  title: ReactNode;
+  description: any;
   id: string;
   user_id: string;
   tracked_website_id: string;

@@ -391,32 +391,6 @@ export default function AddCompanyModal({
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.label}>Priority Level</Text>
-              <View style={styles.chipRow}>
-                {["high", "medium", "low"].map((level) => (
-                  <TouchableOpacity
-                    key={level}
-                    style={[
-                      styles.chip,
-                      priority === level && styles.chipActive,
-                    ]}
-                    onPress={() => setPriority(level)}
-                    disabled={isProcessing}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        priority === level && styles.chipTextActive,
-                      ]}
-                    >
-                      {level.charAt(0).toUpperCase() + level.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.section}>
               <Text style={styles.label}>Check Frequency</Text>
               <View style={styles.chipRow}>
                 {[

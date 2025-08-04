@@ -1,8 +1,14 @@
-import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, Linking, ScrollView } from 'react-native';
-import { JobAlert } from '../types';
-import { ThemedText } from './ThemedText';
-import { ThemedView } from './ThemedView';
+import React from "react";
+import {
+  Linking,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+import { JobAlert } from "../types";
+import { ThemedText } from "./ThemedText";
+import { ThemedView } from "./ThemedView";
 
 interface JobCardModalProps {
   visible: boolean;
@@ -10,15 +16,28 @@ interface JobCardModalProps {
   job: JobAlert | null;
 }
 
-const JobCardModal: React.FC<JobCardModalProps> = ({ visible, onClose, job }) => {
+const JobCardModal: React.FC<JobCardModalProps> = ({
+  visible,
+  onClose,
+  job,
+}) => {
   if (!job) {
     return null;
   }
 
   const handleLinkPress = (url: string | undefined) => {
     if (url) {
-      Linking.openURL(url).catch(err => console.error("Couldn't load page", err));
+      Linking.openURL(url).catch((err) =>
+        console.error("Couldn't load page", err)
+      );
     }
+  };
+
+  const handleApply = async () => {
+    await apiRequest(`${API_BASE_URL}/jobs/${selectedJob.id}/apply`, {
+      method: "POST",
+    });
+    await Linking.openURL(selectedJob.url);
   };
 
   return (
@@ -37,28 +56,36 @@ const JobCardModal: React.FC<JobCardModalProps> = ({ visible, onClose, job }) =>
 
             {job.tracked_website?.company_name && (
               <ThemedText style={styles.modalText}>
-                <ThemedText style={styles.boldText}>Company:</ThemedText> {job.tracked_website.company_name}
+                <ThemedText style={styles.boldText}>Company:</ThemedText>{" "}
+                {job.tracked_website.company_name}
               </ThemedText>
             )}
             {job.salary_range && (
               <ThemedText style={styles.modalText}>
-                <ThemedText style={styles.boldText}>Salary:</ThemedText> {job.salary_range}
+                <ThemedText style={styles.boldText}>Salary:</ThemedText>{" "}
+                {job.salary_range}
               </ThemedText>
             )}
             {job.posted_date && (
               <ThemedText style={styles.modalText}>
-                <ThemedText style={styles.boldText}>Posted Date:</ThemedText> {job.posted_date}
+                <ThemedText style={styles.boldText}>Posted Date:</ThemedText>{" "}
+                {job.posted_date}
               </ThemedText>
             )}
             {job.location && (
               <ThemedText style={styles.modalText}>
-                <ThemedText style={styles.boldText}>Location:</ThemedText> {job.location}
+                <ThemedText style={styles.boldText}>Location:</ThemedText>{" "}
+                {job.location}
               </ThemedText>
             )}
 
-            <ThemedText style={styles.modalDescriptionTitle}>Description:</ThemedText>
+            <ThemedText style={styles.modalDescriptionTitle}>
+              Description:
+            </ThemedText>
             <TouchableOpacity onPress={() => handleLinkPress(job.job_url)}>
-              <ThemedText style={styles.modalDescription}>{job.job_description}</ThemedText>
+              <ThemedText style={styles.modalDescription}>
+                {job.job_description}
+              </ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -83,16 +110,16 @@ const JobCardModal: React.FC<JobCardModalProps> = ({ visible, onClose, job }) =>
 const styles = StyleSheet.create({
   centeredView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 22,
   },
   modalView: {
     margin: 20,
     borderRadius: 20,
     padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -100,32 +127,32 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    width: '90%',
-    maxHeight: '80%',
+    width: "90%",
+    maxHeight: "80%",
   },
   modalTitle: {
     marginBottom: 15,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalText: {
     marginBottom: 10,
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 16,
   },
   boldText: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalDescriptionTitle: {
     marginTop: 15,
     marginBottom: 5,
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalDescription: {
     marginBottom: 20,
-    textAlign: 'left',
+    textAlign: "left",
     fontSize: 14,
   },
   button: {
@@ -133,15 +160,15 @@ const styles = StyleSheet.create({
     padding: 10,
     elevation: 2,
     marginTop: 10,
-    backgroundColor: '#2196F3', // Example color
+    backgroundColor: "#2196F3", // Example color
   },
   buttonClose: {
-    backgroundColor: '#FF6347', // Example color for close button
+    backgroundColor: "#FF6347", // Example color for close button
   },
   buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
   },
 });
 

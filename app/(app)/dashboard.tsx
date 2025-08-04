@@ -39,13 +39,13 @@ interface JobAlert {
   company: string | { id: number; name: string }; // Support both legacy string and new nested format
   companyName?: string; // New derived field from server
   matchedKeywords: string[];
-  dateFound: string;
+  dateFound: string | number | Date;
   description?: string;
   applicationDeadline?: string | null;
   companyId?: number;
   status?: "New" | "Seen" | "Applied" | "Archived";
   priority?: string;
-  salary?: string | null;
+  salary?: string | number;
   requirements?: string[] | null;
 }
 
@@ -503,7 +503,11 @@ export default function DashboardScreen() {
               <Text style={styles.emptyText}>No recent jobs found.</Text>
             ) : (
               <View style={styles.jobListContainer}>
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView
+                  horizontal={false}
+                  showsVerticalScrollIndicator={false}
+                  style={{ maxHeight: 300 }}
+                >
                   {recentActivityJobs.map((job) => (
                     <TouchableOpacity
                       key={job.id}
@@ -830,13 +834,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   emptyText: { color: "#94A3B8", textAlign: "center", marginTop: 16 },
-  jobListContainer: {
-    height: 300, // Or any other fixed height
-    borderColor: "#334155",
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 8,
-  },
   jobCard: {
     backgroundColor: "#1F2937",
     borderRadius: 12,

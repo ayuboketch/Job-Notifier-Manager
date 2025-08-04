@@ -15,7 +15,7 @@
     "dev-server": "nodemon --watch server --exec tsx server/index.ts",
     "dev": "concurrently --raw \"cd server && nodemon --exec tsx index.ts\" \"npx expo start --tunnel\"",
     "backend": "cd server && nodemon --exec tsx index.ts",
-    "frontend": "npx expo start --tunnel",
+    "frontend": "npx expo start -c --tunnel",
     "frontend:local": "npx expo start"
   },
   "dependencies": {

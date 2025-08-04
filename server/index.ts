@@ -326,8 +326,13 @@ async function cleanJobsWithAI(jobs: ScrapedJob[]): Promise<ScrapedJob[]> {
       
       const data = await response.json();
       if (data.choices && data.choices[0] && data.choices[0].message) {
-        const cleaned = JSON.parse(data.choices[0].message.content);
-        cleanedJobs.push({...job, ...cleaned});
+        try {
+          const cleaned = JSON.parse(data.choices[0].message.content);
+          cleanedJobs.push({...job, ...cleaned});
+        } catch (e) {
+          console.error('AI cleanup failed to parse JSON:', e);
+          cleanedJobs.push(job);
+        }
       } else {
         cleanedJobs.push(job);
       }
@@ -501,7 +506,7 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
       if (jobs.length > 0) {
         const jobsToInsert = jobs.map(job => {
           const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
-          return { ...dbJob, companyId: company.id, priority, status: 'New' };
+          return { ...dbJob, companyId: company.id, priority, status: 'New', matchedKeywords: job.matchedKeywords || [] };
         });
         const { error: jobError } = await supabase.from('jobs').insert(jobsToInsert);
         if (jobError) console.error('Job insert error:', jobError.message);
@@ -726,6 +731,14 @@ app.get('/api/companies/schedule', async (req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
+});
+
+app.post('/api/jobs/:id/apply', async (req, res) => {
+  const { error } = await supabase
+    .from('jobs')
+    .update({ status: 'Applied', applied_at: new Date().toISOString() })
+    .eq('id', req.params.id);
+  res.json({ success: !error });
 });
 
 app.post('/api/companies/:id/check-now', async (req, res) => {

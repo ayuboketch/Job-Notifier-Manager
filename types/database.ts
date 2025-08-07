@@ -13,6 +13,7 @@ export const CompanySchema = z.object({
   status: z.enum(['active', 'inactive']).default('active'),
   created_at: z.string().datetime(),
   last_checked_at: z.string().datetime().optional(),
+   user_id: z.string(),
 });
 
 export const JobSchema = z.object({
@@ -83,10 +84,10 @@ export function validateJob(data: unknown): Job {
   return JobSchema.parse(data);
 }
 
-export function validateCompanyInsert(data: unknown): CompanyInsert {
-  return CompanyInsertSchema.parse(data);
+export function validateCompanyInsert(data: unknown, userId: string): CompanyInsert {
+  const parsed = CompanyInsertSchema.parse(data);
+  return { ...parsed, user_id: userId };
 }
-
 export function validateJobInsert(data: unknown): JobInsert {
   return JobInsertSchema.parse(data);
 }

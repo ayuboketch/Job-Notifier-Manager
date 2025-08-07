@@ -1,6 +1,7 @@
 // server/index.ts
 
 import * as dotenv from 'dotenv';
+import 'dotenv/config';
 import * as path from 'path';
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
@@ -179,7 +180,7 @@ const findCareerPageUrl = async (baseUrl: string): Promise<string> => {
   return `${baseUrl}/careers`;
 };
 
-const convertIntervalToMinutes = (interval?: string): number => {
+const convertIntervalToMinutes = (interval: string | undefined): number => {
   if (!interval) return 1440; // Default to 1 day
 
   const parts = interval.trim().split(" ");
@@ -317,7 +318,7 @@ async function scrapeJobs(
 
           if (!title || !url || seen.has(url)) return;
 
-          const matched = [...kwSet].filter(k => title.toLowerCase().includes(k));
+          const matched = [...kwSet].filter((k: string) => title.toLowerCase().includes(k));
           if (kwSet.size === 0 || matched.length > 0) {
             seen.add(url);
             htmlJobs.push({
@@ -651,27 +652,27 @@ const deleteJobHandler: RequestHandler = async (req, res) => {
 };
 
 const updateCompanyPriorityHandler: RequestHandler = async (req, res) => {
-    try {
-        const id = Number(req.params['id']);
-        const { priority } = UpdatePriorityRequestSchema.parse(req.body);
-        
-        await supabase.from('companies').update({ priority }).eq('id', id);
-        await supabase.from('jobs').update({ priority }).eq('companyId', id);
-        
-        res.json({ success: true });
-    } catch (e: any) {
-        if (e instanceof z.ZodError) {
-            return res.status(400).json({ success: false, error: 'Validation error', details: e.flatten() });
-        }
-        res.status(500).json({ success: false, error: e.message });
+  try {
+    const id = Number(req.params['id']);
+    const { priority } = UpdatePriorityRequestSchema.parse(req.body);
+
+    await supabase.from('companies').update({ priority }).eq('id', id);
+    await supabase.from('jobs').update({ priority }).eq('companyId', id);
+
+    return res.json({ success: true });
+  } catch (e: any) {
+    if (e instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: 'Validation error', details: e.flatten() });
     }
+    return res.status(500).json({ success: false, error: e.message });
+  }
 };
 
 const UpdatePriorityRequestSchema = z.object({
   priority: z.enum(['high', 'medium', 'low']),
 });
 
-const refreshAllCompaniesHandler: RequestHandler = async (req, res) => {
+const refreshAllCompaniesHandler = async (_req: Request, res: express.Response) => {
   try {
     const { data: companies } = await supabase.from('companies').select('*').eq('status', 'active');
     

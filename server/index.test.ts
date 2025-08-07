@@ -1,5 +1,4 @@
 import { JSDOM } from 'jsdom';
-import fetch from 'node-fetch';
 import { chromium } from 'playwright';
 import { scrapeJobs, scrapeWithoutAI, type ScrapedJob } from './index';
 
@@ -105,11 +104,11 @@ describe('Job Scraping Functions', () => {
 
       expect(mockPage.goto).toHaveBeenCalledWith(careerPageUrl, expect.any(Object));
       expect(jobs).toHaveLength(2); // Expecting 'Software Engineer - React' and 'Senior Frontend Developer'
-      expect(jobs[0].title).toBe('Software Engineer - React');
-      expect(jobs[0].companyNameTmp).toBe(companyName);
-      expect(jobs[0].matchedKeywords).toEqual(['react']);
-      expect(jobs[1].title).toBe('Senior Frontend Developer');
-      expect(jobs[1].matchedKeywords).toEqual(['frontend']);
+      expect(jobs[0]?.title).toBe('Software Engineer - React');
+      expect(jobs[0]?.companyNameTmp).toBe(companyName);
+      expect(jobs[0]?.matchedKeywords).toEqual(['react']);
+      expect(jobs[1]?.title).toBe('Senior Frontend Developer');
+      expect(jobs[1]?.matchedKeywords).toEqual(['frontend']);
     });
 
     it('should return all jobs if no keywords are provided', async () => {
@@ -122,8 +121,8 @@ describe('Job Scraping Functions', () => {
       const jobs = await scrapeJobs(mockPage, keywords, companyName, careerPageUrl);
 
       expect(jobs).toHaveLength(5); // All 5 jobs from the mock HTML
-      expect(jobs[0].title).toBe('Software Engineer - React');
-      expect(jobs[4].title).toBe('Data Scientist');
+      expect(jobs[0]?.title).toBe('Software Engineer - React');
+      expect(jobs[4]?.title).toBe('Data Scientist');
     });
   });
 
@@ -147,5 +146,3 @@ describe('Job Scraping Functions', () => {
     });
   });
 });
-
-

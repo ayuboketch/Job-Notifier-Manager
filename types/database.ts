@@ -32,10 +32,12 @@ export const JobSchema = z.object({
 });
 
 // Create input schemas for database operations (omit auto-generated fields)
-export const CompanyInsertSchema = CompanySchema.omit({ 
-  id: true, 
+export const CompanyInsertSchema = CompanySchema.omit({
+  id: true,
   created_at: true,
-  last_checked_at: true 
+  last_checked_at: true,
+}).extend({
+  user_id: z.string().uuid(),
 });
 
 export const JobInsertSchema = JobSchema.omit({ 

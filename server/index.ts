@@ -91,7 +91,7 @@ app.get('/api/health-detailed', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+    environment: process.env['NODE_ENV'],
     port: PORT,
     supabaseConnected: !!supabaseUrl && !!supabaseKey
   });
@@ -109,25 +109,33 @@ const extractCompanyName = (url: string): string => {
 };
 
 // Auth middleware to extract user ID from JWT token
-const authenticateUser = async (req: Request, res: express.Response, next: express.NextFunction) => {
+const authenticateUser = async (
+  req: Request,
+  res: express.Response,
+  next: express.NextFunction
+): Promise<void> => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
-      return res.status(401).json({ error: 'No authorization token provided' });
+      res.status(401).json({ error: 'No authorization token provided' });
+      return;
     }
 
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      res.status(401).json({ error: 'Invalid token' });
+      return;
     }
 
     // Add user ID to request object
     (req as any).userId = user.id;
-    next();
+    return next();
   } catch (error) {
-    return res.status(401).json({ error: 'Authentication failed' });
+    res.status(401).json({ error: 'Authentication failed' });
+    return;
   }
-}; 
+};
+
 
 
 // Function to detect and validate career page URLs
@@ -414,9 +422,12 @@ async function scrapeWithoutAI(company: Company): Promise<ScrapedJob[]> {
             const deadlineMatch = parentText.match(/deadline|apply by|closes on[\s:]*([^\n\r,]+)/i);
             
             found.push({
-              title, url, salary: salaryMatch ? salaryMatch[0] : null,
-              applicationDeadlineTmp: deadlineMatch ? deadlineMatch[1]?.trim() : null,
-              description: parentText.substring(0, 200) + '...', requirements: null
+              title,
+              url,
+              salary: salaryMatch ? salaryMatch[0] : null,
+              applicationDeadlineTmp: deadlineMatch?.[1]?.trim() ?? null,
+              description: parentText.substring(0, 200) + '...',
+              requirements: null
             });
           }
         });
@@ -507,9 +518,9 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
     const validatedCompanyData = validateCompanyInsert(companyInsertData);
 
     const { data: company, error } = await supabase
-      .from('companies').insert([{ ...validatedCompanyData, created_at: new Date().toISOString() }])
+      .from('companies').insert([{ ...validatedCompanyData, created_at: new Date().toISOString(), user_id: userId }])
       .select().single();
-
+ 
     if (error || !company) {
       return res.status(500).json({ error: 'Failed to add company', detail: error?.message });
     }
@@ -545,7 +556,7 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
       const jobsForResponse = jobs.map(job => ({
         ...job, id: job.id || Date.now() + Math.random(),
         applicationDeadline: job.applicationDeadlineTmp
-      }));
+      })) as (Partial<Job> & { companyId: number })[];
 
       const companyNames = new Map([[company.id, name]]);
       const mappedJobs = mapJobsWithCompanyNames(jobsForResponse, companyNames);
@@ -820,7 +831,7 @@ app.post('/api/companies/:id/check-now', async (req, res) => {
     try {
       browser = await chromium.launch({ headless: true });
       const page = await browser.newPage();
-      await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36');
+      await page.setExtraHTTPHeaders({ 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' });
       
       let foundJobs = await scrapeJobs(page, company.keywords, company.name, company.career_page_url);
       if (foundJobs.length === 0) {

@@ -440,7 +440,7 @@ export default function AddCompanyModal({
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#141a1f",
   },
   modalHeader: {
     flexDirection: "row",
@@ -449,16 +449,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#334155",
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: "white",
   },
   modalCancelButton: {
     fontSize: 16,
-    color: "#6B7280",
+    color: "#94A3B8",
   },
   modalSaveButton: {
     fontSize: 16,
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     color: "#3B82F6",
   },
   disabledButton: {
-    color: "#9CA3AF",
+    color: "#4B5563",
   },
   disabledText: {
     color: "#9CA3AF",
@@ -474,27 +474,27 @@ const styles = StyleSheet.create({
   loadingContainer: {
     padding: 20,
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#1E293B",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#334155",
   },
   loadingText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#111827",
+    color: "white",
     marginTop: 12,
     textAlign: "center",
   },
   loadingSubtext: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#94A3B8",
     marginTop: 4,
     textAlign: "center",
   },
   progressBar: {
     width: "100%",
     height: 4,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#334155",
     borderRadius: 2,
     marginTop: 12,
     overflow: "hidden",
@@ -506,13 +506,13 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     padding: 16,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#3E2525",
     borderBottomWidth: 1,
-    borderBottomColor: "#FECACA",
+    borderBottomColor: "#5E3A3A",
   },
   errorText: {
     fontSize: 14,
-    color: "#DC2626",
+    color: "#EF4444",
     textAlign: "center",
   },
   scroll: {
@@ -527,23 +527,23 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#111827",
+    color: "white",
     marginBottom: 8,
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#334155",
     borderRadius: 8,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#1E293B",
   },
   inputPrefix: {
     paddingHorizontal: 12,
     paddingVertical: 16,
     fontSize: 16,
-    color: "#6B7280",
-    backgroundColor: "#F9FAFB",
+    color: "#94A3B8",
+    backgroundColor: "#141a1f",
     borderTopLeftRadius: 8,
     borderBottomLeftRadius: 8,
   },
@@ -552,17 +552,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 16,
     fontSize: 16,
-    color: "#111827",
+    color: "white",
   },
   textInput: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#334155",
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 16,
     fontSize: 16,
-    color: "#111827",
-    backgroundColor: "#FFFFFF",
+    color: "white",
+    backgroundColor: "#1E293B",
   },
   multilineInput: {
     minHeight: 80,
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#94A3B8",
     marginTop: 4,
   },
   chipRow: {
@@ -583,8 +583,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#D1D5DB",
-    backgroundColor: "#FFFFFF",
+    borderColor: "#334155",
+    backgroundColor: "#1E293B",
   },
   chipActive: {
     backgroundColor: "#3B82F6",
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#94A3B8",
   },
   chipTextActive: {
     color: "#FFFFFF",

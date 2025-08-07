@@ -108,6 +108,28 @@ const extractCompanyName = (url: string): string => {
   }
 };
 
+// Auth middleware to extract user ID from JWT token
+const authenticateUser = async (req: Request, res: express.Response, next: express.NextFunction) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'No authorization token provided' });
+    }
+
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Add user ID to request object
+    (req as any).userId = user.id;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Authentication failed' });
+  }
+}; 
+
+
 // Function to detect and validate career page URLs
 const findCareerPageUrl = async (baseUrl: string): Promise<string> => {
   const commonPaths = [
@@ -461,6 +483,7 @@ const AddCompanyRequestSchema = z.object({
 
 export const addCompanyHandler: RequestHandler = async (req, res) => {
   try {
+    const userId = (req as any).userId; // From auth middleware
     const validatedBody = AddCompanyRequestSchema.parse(req.body);
     const { url, keywords, priority, checkInterval } = validatedBody;
     let { careerPageUrl } = validatedBody;
@@ -471,7 +494,6 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
       : keywords;
 
     if (!careerPageUrl) {
-      console.log(`🔍 No career page URL provided, auto-detecting for ${url}...`);
       careerPageUrl = await findCareerPageUrl(url);
     }
     
@@ -479,6 +501,7 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
       name, url, career_page_url: careerPageUrl, keywords: keywordsArray,
       priority, status: 'active',
       check_interval_minutes: convertIntervalToMinutes(checkInterval),
+      user_id: userId // Add user ID
     };
 
     const validatedCompanyData = validateCompanyInsert(companyInsertData);
@@ -488,10 +511,10 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
       .select().single();
 
     if (error || !company) {
-      console.error('Supabase insert error:', error);
       return res.status(500).json({ error: 'Failed to add company', detail: error?.message });
     }
 
+    // Rest of scraping logic remains the same, but add user_id to jobs
     let jobs: ScrapedJob[] = [];
     try {
       const browser = await chromium.launch({ headless: true });
@@ -506,7 +529,14 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
       if (jobs.length > 0) {
         const jobsToInsert = jobs.map(job => {
           const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
-          return { ...dbJob, companyId: company.id, priority, status: 'New', matchedKeywords: job.matchedKeywords || [] };
+          return { 
+            ...dbJob, 
+            companyId: company.id, 
+            priority, 
+            status: 'New', 
+            matchedKeywords: job.matchedKeywords || [],
+            user_id: userId // Add user ID to jobs
+          };
         });
         const { error: jobError } = await supabase.from('jobs').insert(jobsToInsert);
         if (jobError) console.error('Job insert error:', jobError.message);
@@ -534,9 +564,13 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
   }
 };
 
-const getCompaniesHandler: RequestHandler = async (_req, res) => {
+const getCompaniesHandler: RequestHandler = async (req, res) => {
   try {
-    const { data, error } = await supabase.from('companies').select('*');
+    const userId = (req as any).userId;
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('user_id', userId); // Filter by user
     if (error) throw error;
     res.json(data || []);
   } catch (e: any) {
@@ -545,41 +579,64 @@ const getCompaniesHandler: RequestHandler = async (_req, res) => {
 };
 
 const deleteCompanyHandler: RequestHandler = async (req, res) => {
-    try {
-        const id = Number(req.params['id']);
-        await supabase.from('jobs').delete().eq('companyId', id);
-        const { error } = await supabase.from('companies').delete().eq('id', id);
-        if (error) throw error;
-        res.json({ success: true });
-    } catch (e: any) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+  try {
+    const userId = (req as any).userId;
+    const id = Number(req.params['id']);
+    
+    // Delete jobs first (with user check)
+    await supabase.from('jobs').delete()
+      .eq('companyId', id)
+      .eq('user_id', userId);
+    
+    // Delete company (with user check)
+    const { error } = await supabase
+      .from('companies')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 };
 
-const getJobsHandler: RequestHandler = async (_req, res) => {
-    try {
-        const { data: jobs, error } = await supabase.from('jobs').select('*');
-        if (error) throw error;
-        
-        const companyNames = await getCompanyNames();
-        const typedJobs = (jobs || []).filter((j): j is Job & { companyId: number } => j.companyId !== null);
-        const jobsWithCompanyNames = mapJobsWithCompanyNames(typedJobs, companyNames);
-        
-        res.json(jobsWithCompanyNames);
-    } catch (e: any) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+const getJobsHandler: RequestHandler = async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('user_id', userId); // Filter by user
+    
+    if (error) throw error;
+    
+    const companyNames = await getCompanyNames();
+    const typedJobs = (jobs || []).filter((j): j is Job & { companyId: number } => j.companyId !== null);
+    const jobsWithCompanyNames = mapJobsWithCompanyNames(typedJobs, companyNames);
+    
+    res.json(jobsWithCompanyNames);
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 };
 
 const deleteJobHandler: RequestHandler = async (req, res) => {
-    try {
-        const id = Number(req.params['id']);
-        const { error } = await supabase.from('jobs').delete().eq('id', id);
-        if (error) throw error;
-        res.json({ success: true });
-    } catch (e: any) {
-        res.status(500).json({ success: false, error: e.message });
-    }
+  try {
+    const userId = (req as any).userId;
+    const id = Number(req.params['id']);
+    const { error } = await supabase
+      .from('jobs')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId); // User check
+    
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 };
 
 const updateCompanyPriorityHandler: RequestHandler = async (req, res) => {
@@ -650,6 +707,8 @@ const refreshAllCompaniesHandler: RequestHandler = async (req, res) => {
 };
 
 /* ---------- Routes Registration ---------------------------------------- */
+app.use('/api/companies', authenticateUser);
+app.use('/api/jobs', authenticateUser);
 app.post('/api/companies', addCompanyHandler);
 app.post('/api/companies/refresh', refreshAllCompaniesHandler);
 app.get('/api/companies', getCompaniesHandler);
@@ -657,6 +716,7 @@ app.delete('/api/companies/:id', deleteCompanyHandler);
 app.put('/api/companies/:id/priority', updateCompanyPriorityHandler);
 app.get('/api/jobs', getJobsHandler);
 app.delete('/api/jobs/:id', deleteJobHandler);
+
 
 // Debug endpoints from working version
 app.get('/api/debug/schedule', async (req, res) => {
@@ -810,6 +870,7 @@ cron.schedule('*/15 * * * *', async () => {
   console.log('[CRON] Running scheduled job check...');
   
   try {
+    // Get all active companies for all users
     const { data: companies, error } = await supabase
       .from('companies')
       .select('*')
@@ -825,25 +886,16 @@ cron.schedule('*/15 * * * *', async () => {
       return;
     }
 
-    console.log(`[CRON] Found ${companies.length} active companies total`);
-
     const now = new Date();
     const companiesDueForCheck = companies.filter(company => {
       try {
-        if (!company.last_checked_at) {
-          console.log(`[CRON] ${company.name} - Never checked, marking as due`);
-          return true;
-        }
+        if (!company.last_checked_at) return true;
 
         const lastChecked = new Date(company.last_checked_at);
         const intervalMinutes = company.check_interval_minutes || 1440;
         const nextCheckTime = new Date(lastChecked.getTime() + (intervalMinutes * 60 * 1000));
         
         const isDue = now >= nextCheckTime;
-        const hoursUntilNext = Math.round((nextCheckTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-        
-        console.log(`[CRON] ${company.name} - Last: ${lastChecked.toLocaleString()}, Interval: ${Math.round(intervalMinutes/60)}h, Next in: ${hoursUntilNext}h, Due: ${isDue}`);
-        
         return isDue;
       } catch (err) {
         console.error(`[CRON] Error processing ${company.name}:`, err);
@@ -856,7 +908,7 @@ cron.schedule('*/15 * * * *', async () => {
       return;
     }
 
-    console.log(`[CRON] 🔍 ${companiesDueForCheck.length} companies due: ${companiesDueForCheck.map(c => c.name).join(', ')}`);
+    console.log(`[CRON] 🔍 ${companiesDueForCheck.length} companies due`);
 
     const maxCompaniesPerRun = 1;
     const companiesToCheck = companiesDueForCheck.slice(0, maxCompaniesPerRun);
@@ -879,14 +931,26 @@ cron.schedule('*/15 * * * *', async () => {
             foundJobs = await scrapeWithoutAI(company);
           }
 
-          const { data: existingJobs } = await supabase.from('jobs').select('url').eq('companyId', company.id);
+          // Check existing jobs for THIS USER only
+          const { data: existingJobs } = await supabase
+            .from('jobs')
+            .select('url')
+            .eq('companyId', company.id)
+            .eq('user_id', company.user_id); // Filter by user
+            
           const existingUrls = new Set(existingJobs?.map(e => e.url) || []);
           const newJobs = foundJobs.filter(f => f.url && !existingUrls.has(f.url));
           
           if (newJobs.length > 0) {
             const jobsToInsert = newJobs.map(job => {
               const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
-              return { ...dbJob, companyId: company.id, priority: company.priority, status: 'New' };
+              return { 
+                ...dbJob, 
+                companyId: company.id, 
+                priority: company.priority, 
+                status: 'New',
+                user_id: company.user_id // Add user ID
+              };
             });
             
             const { error: insertError } = await supabase.from('jobs').insert(jobsToInsert);
@@ -906,20 +970,10 @@ cron.schedule('*/15 * * * *', async () => {
             
           if (updateError) {
             console.error(`[CRON] Failed to update last_checked_at for ${company.name}:`, updateError);
-          } else {
-            console.log(`[CRON] ✅ Updated check time for ${company.name}`);
           }
           
         } catch (err: any) {
           console.error(`[CRON] ❌ Error processing ${company.name}:`, err.message);
-          
-          try {
-            await supabase.from('companies').update({ 
-              last_checked_at: new Date().toISOString() 
-            }).eq('id', company.id);
-          } catch (updateErr) {
-            console.error(`[CRON] Failed to update timestamp after error:`, updateErr);
-          }
         } finally {
           if (page && !page.isClosed()) {
             try {
@@ -943,10 +997,9 @@ cron.schedule('*/15 * * * *', async () => {
     }
   } catch (mainError) {
     console.error('[CRON] Main cron error:', mainError);
-  } finally {
-    console.log('[CRON] 🏁 Cron job completed');
   }
 });
+
 
 /* ---------- Server startup - FIXED ------------------------------------ */
 // ALWAYS start the server, not just in non-test environments

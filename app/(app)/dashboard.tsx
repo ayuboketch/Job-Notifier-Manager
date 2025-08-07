@@ -18,6 +18,7 @@ import AddCompanyModal from "../../components/AddCompanyModal";
 import CompanyListModal from "../../components/CompanyListModal";
 import JobListModal from "../../components/JobListModal";
 import { useAuth } from "../../context/AuthContext";
+import { supabase } from "../../lib/supabase";
 
 // Unified interfaces
 interface TrackedWebsite {
@@ -31,7 +32,7 @@ interface TrackedWebsite {
   status: "active" | "inactive";
   last_checked_at: string;
 }
-
+// This JobAlert interface is defined here to be used within this component.
 interface JobAlert {
   id: number;
   title: string;
@@ -44,7 +45,7 @@ interface JobAlert {
   applicationDeadline?: string | null;
   companyId?: number;
   status?: "New" | "Seen" | "Applied" | "Archived";
-  priority?: string;
+  priority?: "high" | "medium" | "low";
   salary?: string | number;
   requirements?: string[] | null;
 }
@@ -55,10 +56,19 @@ const API_BASE_URL = process.env["EXPO_PUBLIC_API_BASE_URL"]!;
 async function apiRequest(url: string, options: RequestInit = {}) {
   try {
     console.log(`Making API request to: ${url}`);
+
+    // Get current session token
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     const response = await fetch(url, {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        Authorization: session?.access_token
+          ? `Bearer ${session.access_token}`
+          : "",
         ...options.headers,
       },
     });
@@ -103,7 +113,9 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingCompany, setAddingCompany] = useState(false);
-  const [editingCompany, setEditingCompany] = useState(null);
+  const [editingCompany, setEditingCompany] = useState<TrackedWebsite | null>(
+    null
+  );
   const [isEditing, setIsEditing] = useState(false);
 
   // Use a ref to hold the interval ID
@@ -205,12 +217,14 @@ export default function DashboardScreen() {
             }
             // Merge new jobs, avoid duplicates
             const existingUrls = new Set(prevJobs.map((j) => j.url));
-            const newJobs = mappedJobs.filter((j) => !existingUrls.has(j.url));
+            const newJobs = mappedJobs.filter(
+              (j: { url: string }) => !existingUrls.has(j.url)
+            );
             return isInitial ? mappedJobs : [...prevJobs, ...newJobs];
           });
         }
 
-        console.log(
+        console.info(
           `✅ Loaded ${fetchedCompanies.length} companies and ${fetchedJobs.length} jobs`
         );
       } catch (e) {
@@ -236,7 +250,7 @@ export default function DashboardScreen() {
         clearInterval(refreshIntervalRef.current);
       }
       refreshIntervalRef.current = setInterval(() => {
-        console.log("[Interval] Auto-refreshing data...");
+        console.info("[Interval] Auto-refreshing data...");
         fetchData();
       }, 30000);
     };
@@ -260,7 +274,7 @@ export default function DashboardScreen() {
       Alert.alert("Refresh Complete", `Found ${result.newJobs} new jobs!`);
       fetchData(true); // Reload data
     } catch (error) {
-      Alert.alert("Refresh Failed", error.message);
+      Alert.alert("Refresh Failed", (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -280,7 +294,7 @@ export default function DashboardScreen() {
 
     try {
       setAddingCompany(true);
-      console.log("Adding company:", companyData);
+      console.info("Adding company:", companyData);
       const result = await apiRequest(`${API_BASE_URL}/companies`, {
         method: "POST",
         body: JSON.stringify(companyData),
@@ -309,7 +323,7 @@ export default function DashboardScreen() {
             const uniqueNewJobs = newJobs.filter(
               (job: { url: string }) => !existingUrls.has(job.url)
             );
-            console.log(
+            console.info(
               `Adding ${uniqueNewJobs.length} new unique jobs out of ${newJobs.length} found`
             );
             return [...prev, ...uniqueNewJobs];
@@ -320,15 +334,15 @@ export default function DashboardScreen() {
         Alert.alert(
           "Success!",
           `Added ${newCompany?.name || "Company"}. Found ${
-            newJobs.length
+            newJobs.length || 0
           } jobs.`
         );
       } else {
         throw new Error(result.error || "Failed to add company");
       }
     } catch (e) {
-      const error = e as Error;
-      console.error("Failed to add company:", error);
+      const error = e;
+      console.error("Failed to add company:", error as Error);
       Alert.alert("Error", error.message);
     } finally {
       setAddingCompany(false);
@@ -361,7 +375,7 @@ export default function DashboardScreen() {
       await apiRequest(`${API_BASE_URL}/jobs/${jobId}`, { method: "DELETE" });
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
       setShowJobModal(false);
-      Alert.alert("Success", "Job removed successfully");
+      Alert.alert("Success", "Job removed successfully.");
     } catch (_e) {
       Alert.alert("Error", "Failed to delete job");
     }
@@ -596,7 +610,7 @@ export default function DashboardScreen() {
       <AddCompanyModal
         visible={showAddCompanyModal}
         onClose={() => {
-          setShowAddCompanyModal(false);
+          setShowAddCompanyModal(false); // Fix: Ensure modal closes
           setEditingCompany(null);
           setIsEditing(false);
         }}

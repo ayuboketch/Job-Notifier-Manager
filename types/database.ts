@@ -32,13 +32,22 @@ export const JobSchema = z.object({
 });
 
 // Create input schemas for database operations (omit auto-generated fields)
-export const CompanyInsertSchema = CompanySchema.omit({
-  id: true,
+export const CompanyInsertSchema = CompanySchema.omit({ 
+  id: true, 
   created_at: true,
   last_checked_at: true,
-}).extend({
-  user_id: z.string().uuid(),
+  user_id: true, 
 });
+export type CompanyInsert = {
+  name: string;
+  url: string;
+  career_page_url: string;
+  keywords: string[];
+  priority: 'high' | 'medium' | 'low';
+  status: 'active' | 'inactive'; 
+  check_interval_minutes: number;
+  user_id: string; 
+};
 
 export const JobInsertSchema = JobSchema.omit({ 
   id: true 
@@ -50,7 +59,6 @@ export const JobUpdateSchema = JobInsertSchema.partial();
 // Infer TypeScript types from Zod schemas
 export type Company = z.infer<typeof CompanySchema>;
 export type Job = z.infer<typeof JobSchema>;
-export type CompanyInsert = z.infer<typeof CompanyInsertSchema>;
 export type JobInsert = z.infer<typeof JobInsertSchema>;
 export type CompanyUpdate = z.infer<typeof CompanyUpdateSchema>;
 export type JobUpdate = z.infer<typeof JobUpdateSchema>;

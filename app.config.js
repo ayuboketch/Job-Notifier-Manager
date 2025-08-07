@@ -12,6 +12,8 @@ export default {
     extra: {
       eas: {
         projectId: "e813559c-b463-4d5a-adc3-4e6b9a564e96",
+        supabaseUrl: process.env.SUPABASE_URL,
+        supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
       },
     },
     splash: {

@@ -493,7 +493,7 @@ const AddCompanyRequestSchema = z.object({
   checkInterval: z.string(),
 });
 
-export const addCompanyHandler: RequestHandler = async (req, res) => {
+export const addCompanyHandler: RequestHandler = async (req, res): Promise<void> => {
   try {
     const userId = (req as any).userId; // From auth middleware
     const validatedBody = AddCompanyRequestSchema.parse(req.body);
@@ -516,14 +516,15 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
       user_id: userId // Add user ID
     };
 
-    const validatedCompanyData = validateCompanyInsert(companyInsertData);
+    const validatedCompanyData = validateCompanyInsert(companyInsertData, userId);
 
     const { data: company, error } = await supabase
       .from('companies').insert([{ ...validatedCompanyData, created_at: new Date().toISOString(), user_id: userId }])
       .select().single();
  
     if (error || !company) {
-      return res.status(500).json({ error: 'Failed to add company', detail: error?.message });
+      res.status(500).json({ error: 'Failed to add company', detail: error?.message });
+      return;
     }
 
     // Rest of scraping logic remains the same, but add user_id to jobs
@@ -569,7 +570,8 @@ export const addCompanyHandler: RequestHandler = async (req, res) => {
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ success: false, error: 'Validation error', details: error.flatten() });
+      res.status(400).json({ success: false, error: 'Validation error', details: error.flatten() });
+      return;
     }
     console.error('Error in addCompanyHandler:', error);
     res.status(500).json({ success: false, error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' });
@@ -672,12 +674,12 @@ const UpdatePriorityRequestSchema = z.object({
   priority: z.enum(['high', 'medium', 'low']),
 });
 
-const refreshAllCompaniesHandler = async (_req: Request, res: express.Response) => {
+const refreshAllCompaniesHandler = async (_req: Request, res: express.Response): Promise<void> => {
   try {
     const { data: companies } = await supabase.from('companies').select('*').eq('status', 'active');
     
     if (!companies || companies.length === 0) {
-      return res.json({ success: true, message: 'No active companies to refresh', newJobs: 0 });
+      res.json({ success: true, message: 'No active companies to refresh', newJobs: 0 }); return;
     }
 
     let totalNewJobs = 0;
@@ -813,7 +815,7 @@ app.post('/api/jobs/:id/apply', async (req, res) => {
   res.json({ success: !error });
 });
 
-app.post('/api/companies/:id/check-now', async (req, res) => {
+app.post('/api/companies/:id/check-now', async (req, res): Promise<void> => {
   try {
     const companyId = Number(req.params.id);
     const { data: company, error } = await supabase
@@ -823,7 +825,8 @@ app.post('/api/companies/:id/check-now', async (req, res) => {
       .single();
       
     if (error || !company) {
-      return res.status(404).json({ error: 'Company not found' });
+      res.status(404).json({ success: false, error: 'Company not found' });
+      return;
     }
 
     console.log(`[MANUAL] Manual check requested for ${company.name}`);

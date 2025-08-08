@@ -1,6 +1,7 @@
 // types/index.ts
 // Re-export database types for consistency
 export * from './database';
+import { ReactNode } from 'react';
 import { Job, JobInsert, JobUpdate } from './database';
 
 // Legacy interfaces for backward compatibility (deprecated - use database types instead)
@@ -25,6 +26,12 @@ export interface TrackedWebsite {
   created_at: string;
   updated_at: string;
   keywords?: string[]; 
+  priority: "high" | "low" | "medium";
+  name: string;
+  url: string;
+  career_page_url: string;
+  status: "active" | "inactive";
+  check_interval_minutes: number;
 }
 
 export interface JobAlert {
@@ -33,8 +40,6 @@ export interface JobAlert {
   requirements: any;
   applicationDeadline: any;
   salary: ReactNode;
-  salary: any;
-  title: ReactNode;
   title: ReactNode;
   description: any;
   id: string;
@@ -51,6 +56,14 @@ export interface JobAlert {
   is_read: boolean;
   created_at: string;
   tracked_website?: TrackedWebsite;
+  url: string;
+  companyName: string;
+  priority: "high" | "low" | "medium";
+  companyId: string;
+  status: string;
+  company: string;
+  jobId: number;
+  name: string;
 }
 
 export interface SavedJob {

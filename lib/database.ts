@@ -1,17 +1,17 @@
 // lib/database.ts
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { 
-  Company, 
-  Job, 
-  CompanyInsert, 
-  JobInsert,
+import {
+  Company,
+  CompanyInsert,
   CompanyUpdate,
+  DatabaseTables,
+  Job,
+  JobInsert,
   JobUpdate,
   validateCompany,
-  validateJob,
   validateCompanyInsert,
-  validateJobInsert,
-  DatabaseTables 
+  validateJob,
+  validateJobInsert
 } from '../types/database';
 
 // Type-safe database operations
@@ -26,7 +26,7 @@ export class TypeSafeDatabase {
   async insertCompany(data: CompanyInsert): Promise<{ data: Company | null; error: any }> {
     try {
       // Validate data before inserting
-      const validatedData = validateCompanyInsert(data);
+      const validatedData = validateCompanyInsert(data, data.user_id);
       
       const { data: result, error } = await this.supabase
         .from('companies')

@@ -10,24 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-interface JobAlert {
-  id: number;
-  title: string;
-  url: string;
-  company: string | { id: number; name: string }; // Support both legacy string and new nested format
-  companyName?: string; // New derived field from server
-  matchedKeywords: string[];
-  dateFound: string;
-  description?: string;
-  applicationDeadline?: string | null;
-  companyId?: number;
-  status?: "New" | "Seen" | "Applied" | "Archived";
-  priority?: string;
-  salary?: string | null;
-  requirements?: string[] | null;
-  duties?: string[] | null; // New field for job duties
-}
+import { JobAlert } from "../types";
 
 interface JobListModalProps {
   visible: boolean;
@@ -51,9 +34,15 @@ export default function JobListModal({
   const getCompanyDisplayName = (job: JobAlert): string => {
     // Priority order: companyName (new derived field) > nested company.name > legacy company string
     if (job.companyName) {
+      // This is the preferred way to get the company name
       return job.companyName;
     }
-    if (job.company && typeof job.company === "object" && job.company.name) {
+    if (
+      job.company &&
+      typeof job.company === "object" &&
+      "name" in job.company
+    ) {
+      // Check if 'name' property exists
       return job.company.name;
     }
     if (job.company && typeof job.company === "string") {

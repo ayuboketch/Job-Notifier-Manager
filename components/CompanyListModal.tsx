@@ -10,18 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-interface TrackedWebsite {
-  id: number;
-  name: string;
-  url: string;
-  career_page_url: string;
-  keywords: string[];
-  priority: string;
-  check_interval_minutes: number;
-  status: "active" | "inactive";
-  last_checked_at: string;
-}
+import { TrackedWebsite } from "../types";
 
 interface CompanyListModalProps {
   visible: boolean;

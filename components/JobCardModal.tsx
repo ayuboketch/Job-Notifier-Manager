@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   Linking,
   Modal,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+import { apiRequest } from "../app/(app)/dashboard";
 import { JobAlert } from "../types";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
@@ -25,15 +26,17 @@ const JobCardModal: React.FC<JobCardModalProps> = ({
     return null;
   }
 
-  const handleLinkPress = (url: string | undefined) => {
+  const API_BASE_URL = process.env["EXPO_PUBLIC_API_BASE_URL"]!;
+
+  const handleLinkPress = useCallback((url: string | undefined) => {
     if (url) {
       Linking.openURL(url).catch((err) =>
         console.error("Couldn't load page", err)
       );
     }
-  };
+  }, []);
 
-  const handleApply = async () => {
+  const handleApply = async (selectedJob: JobAlert) => {
     await apiRequest(`${API_BASE_URL}/jobs/${selectedJob.id}/apply`, {
       method: "POST",
     });
@@ -50,48 +53,45 @@ const JobCardModal: React.FC<JobCardModalProps> = ({
       <ThemedView style={styles.centeredView}>
         <ThemedView style={styles.modalView}>
           <ScrollView>
-            <TouchableOpacity onPress={() => handleLinkPress(job.job_url)}>
-              <ThemedText style={styles.modalTitle}>{job.job_title}</ThemedText>
+            <TouchableOpacity onPress={() => handleLinkPress(job.url)}>
+              <ThemedText style={styles.modalTitle}>{job.title}</ThemedText>
             </TouchableOpacity>
 
-            {job.tracked_website?.company_name && (
+            {job.companyName && (
               <ThemedText style={styles.modalText}>
                 <ThemedText style={styles.boldText}>Company:</ThemedText>{" "}
-                {job.tracked_website.company_name}
+                {job.companyName}
               </ThemedText>
             )}
-            {job.salary_range && (
+            {job.salary && (
               <ThemedText style={styles.modalText}>
                 <ThemedText style={styles.boldText}>Salary:</ThemedText>{" "}
-                {job.salary_range}
+                {job.salary}
               </ThemedText>
             )}
-            {job.posted_date && (
+            {job.dateFound && (
               <ThemedText style={styles.modalText}>
                 <ThemedText style={styles.boldText}>Posted Date:</ThemedText>{" "}
-                {job.posted_date}
+                {new Date(job.dateFound).toLocaleDateString()}
               </ThemedText>
             )}
             {job.location && (
               <ThemedText style={styles.modalText}>
                 <ThemedText style={styles.boldText}>Location:</ThemedText>{" "}
-                {job.location}
+                {job.location || "N/A"}
               </ThemedText>
             )}
 
             <ThemedText style={styles.modalDescriptionTitle}>
               Description:
             </ThemedText>
-            <TouchableOpacity onPress={() => handleLinkPress(job.job_url)}>
+            <TouchableOpacity onPress={() => handleLinkPress(job.url)}>
               <ThemedText style={styles.modalDescription}>
-                {job.job_description}
+                {job.description || "No description available."}
               </ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => handleLinkPress(job.job_url)} // Assuming job_url is also the application link for now
-            >
+            <TouchableOpacity style={styles.button} onPress={handleApply}>
               <ThemedText style={styles.buttonText}>Apply</ThemedText>
             </TouchableOpacity>
           </ScrollView>

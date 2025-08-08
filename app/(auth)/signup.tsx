@@ -42,15 +42,15 @@ export default function SignupScreen() {
   const validateForm = () => {
     const newErrors: FormErrors = {};
     if (!formData.fullName.trim())
-      newErrors.fullName = "Full name is required.";
-    if (!formData.email.trim()) newErrors.email = "Email is required.";
+      newErrors["fullName"] = "Full name is required.";
+    if (!formData.email.trim()) newErrors["email"] = "Email is required.";
     else if (!/\S+@\S+\.\S+/.test(formData.email))
-      newErrors.email = "Email is invalid.";
-    if (!formData.password) newErrors.password = "Password is required.";
+      newErrors["email"] = "Email is invalid.";
+    if (!formData.password) newErrors["password"] = "Password is required.";
     else if (formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters.";
+      newErrors["password"] = "Password must be at least 6 characters.";
     if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match.";
+      newErrors["confirmPassword"] = "Passwords do not match.";
 
     setErrors(newErrors);
     console.log("🔍 Validation Errors:", newErrors);
@@ -116,9 +116,9 @@ export default function SignupScreen() {
               <View style={styles.verificationContent}>
                 <Text style={styles.verificationTitle}>Check Your Email</Text>
                 <Text style={styles.verificationText}>
-                  We&apos;ve sent a verification link to your inbox. Please click the
-                  link to activate your account, then return to the login
-                  screen.
+                  We&apos;ve sent a verification link to your inbox. Please
+                  click the link to activate your account, then return to the
+                  login screen.
                 </Text>
                 <TouchableOpacity
                   style={styles.backButton}
@@ -153,22 +153,25 @@ export default function SignupScreen() {
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Full Name</Text>
                   <TextInput
-                    style={[styles.input, errors.fullName && styles.inputError]}
+                    style={[
+                      styles.input,
+                      errors["fullName"] && styles.inputError,
+                    ]}
                     value={formData.fullName}
                     onChangeText={(text) => handleInputChange("fullName", text)}
                     placeholder="Enter your full name"
                     placeholderTextColor="#64748B"
                     autoCapitalize="words"
                   />
-                  {errors.fullName && (
-                    <Text style={styles.errorText}>{errors.fullName}</Text>
+                  {errors["fullName"] && (
+                    <Text style={styles.errorText}>{errors["fullName"]}</Text>
                   )}
                 </View>
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Email</Text>
                   <TextInput
-                    style={[styles.input, errors.email && styles.inputError]}
+                    style={[styles.input, errors["email"] && styles.inputError]}
                     value={formData.email}
                     onChangeText={(text) => handleInputChange("email", text)}
                     placeholder="Enter your email"
@@ -176,23 +179,26 @@ export default function SignupScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                   />
-                  {errors.email && (
-                    <Text style={styles.errorText}>{errors.email}</Text>
+                  {errors["email"] && (
+                    <Text style={styles.errorText}>{errors["email"]}</Text>
                   )}
                 </View>
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.label}>Password</Text>
                   <TextInput
-                    style={[styles.input, errors.password && styles.inputError]}
+                    style={[
+                      styles.input,
+                      errors["password"] && styles.inputError,
+                    ]}
                     value={formData.password}
                     onChangeText={(text) => handleInputChange("password", text)}
                     placeholder="Create a password"
                     placeholderTextColor="#64748B"
                     secureTextEntry
                   />
-                  {errors.password && (
-                    <Text style={styles.errorText}>{errors.password}</Text>
+                  {errors["password"] && (
+                    <Text style={styles.errorText}>{errors["password"]}</Text>
                   )}
                 </View>
 
@@ -201,7 +207,7 @@ export default function SignupScreen() {
                   <TextInput
                     style={[
                       styles.input,
-                      errors.confirmPassword && styles.inputError,
+                      errors["confirmPassword"] && styles.inputError,
                     ]}
                     value={formData.confirmPassword}
                     onChangeText={(text) =>
@@ -211,9 +217,9 @@ export default function SignupScreen() {
                     placeholderTextColor="#64748B"
                     secureTextEntry
                   />
-                  {errors.confirmPassword && (
+                  {errors["confirmPassword"] && (
                     <Text style={styles.errorText}>
-                      {errors.confirmPassword}
+                      {errors["confirmPassword"]}
                     </Text>
                   )}
                 </View>

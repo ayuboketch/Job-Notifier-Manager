@@ -1,7 +1,7 @@
 // examples/jobGuardsExample.ts
 // Example showing how to integrate job guard utilities into your application
 
-import { prepareJobForInsert, validateJobColumns, sanitizeJobData } from '../utils/jobGuards';
+import { prepareJobForInsert, sanitizeJobData, validateJobColumns } from '../utils/jobGuards';
 
 // Example 1: Safe job creation endpoint
 export async function createJobEndpoint(req: any, res: any) {
@@ -56,8 +56,35 @@ export function logJobData(rawData: unknown) {
 }
 
 // Example 4: Batch job processing with error handling
+interface ProcessedJob {
+  index: number;
+  data: {
+    title: string;
+    url: string;
+    matchedKeywords: string[];
+    status: "New" | "Seen" | "Applied" | "Archived";
+    dateFound: string;
+    companyId: number;
+    priority: "high" | "medium" | "low";
+    description?: string;
+    salary?: string;
+    requirements?: string[];
+    applicationDeadline?: string;
+    company?: any;
+  };
+}
+
+interface FailedJob {
+  index: number;
+  error: string;
+  rawData: unknown;
+}
+
 export async function processBatchJobs(rawJobsArray: unknown[]) {
-  const results = {
+  const results: {
+    successful: ProcessedJob[];
+    failed: FailedJob[];
+  } = {
     successful: [],
     failed: []
   };
@@ -65,14 +92,12 @@ export async function processBatchJobs(rawJobsArray: unknown[]) {
   for (let i = 0; i < rawJobsArray.length; i++) {
     try {
       const safeJobData = prepareJobForInsert(rawJobsArray[i]);
-      // Process the job
-      // await processJob(safeJobData);
       results.successful.push({ index: i, data: safeJobData });
     } catch (error) {
       console.error(`Job ${i} failed validation:`, error);
-      results.failed.push({ 
-        index: i, 
-        error: error instanceof Error ? error.message : 'Unknown error',
+      results.failed.push({
+        index: i,
+        error: error instanceof Error ? error.message : "Unknown error",
         rawData: rawJobsArray[i]
       });
     }
@@ -80,6 +105,7 @@ export async function processBatchJobs(rawJobsArray: unknown[]) {
 
   return results;
 }
+
 
 // Example 5: Middleware for Express.js applications
 export function jobValidationMiddleware(req: any, res: any, next: any) {

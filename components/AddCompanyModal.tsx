@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Company } from "../types";
 
 // Add these types/constants - you may need to adjust based on your actual API setup
 const API_BASE_URL =
@@ -33,14 +34,6 @@ const apiRequest = async (url: string, options: RequestInit) => {
 
   return response.json();
 };
-
-interface Company {
-  id: string;
-  url: string;
-  keywords?: string[];
-  priority?: string;
-  check_interval_minutes?: number;
-}
 
 interface AddCompanyModalProps {
   visible: boolean;

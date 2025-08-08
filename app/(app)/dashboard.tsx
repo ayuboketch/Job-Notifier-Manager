@@ -19,36 +19,7 @@ import CompanyListModal from "../../components/CompanyListModal";
 import JobListModal from "../../components/JobListModal";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
-
-// Unified interfaces
-interface TrackedWebsite {
-  id: number;
-  name: string;
-  url: string;
-  career_page_url: string;
-  keywords: string[];
-  priority: string;
-  check_interval_minutes: number;
-  status: "active" | "inactive";
-  last_checked_at: string;
-}
-// This JobAlert interface is defined here to be used within this component.
-interface JobAlert {
-  id: number;
-  title: string;
-  url: string;
-  company: string | { id: number; name: string }; // Support both legacy string and new nested format
-  companyName?: string; // New derived field from server
-  matchedKeywords: string[];
-  dateFound: string | number | Date;
-  description?: string;
-  applicationDeadline?: string | null;
-  companyId?: number;
-  status?: "New" | "Seen" | "Applied" | "Archived";
-  priority?: "high" | "medium" | "low";
-  salary?: string | number;
-  requirements?: string[] | null;
-}
+import { JobAlert, TrackedWebsite } from "../../types/"; // Import JobAlert from types.ts
 
 const API_BASE_URL = process.env["EXPO_PUBLIC_API_BASE_URL"]!;
 
@@ -95,6 +66,8 @@ async function apiRequest(url: string, options: RequestInit = {}) {
     throw error;
   }
 }
+
+export { apiRequest };
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -152,41 +125,50 @@ export default function DashboardScreen() {
   );
 
   // Helper function to get company display name from various formats
-  const getCompanyDisplayName = (job: any): string => {
+  const getCompanyDisplayName = (job: JobAlert): string => {
     // Priority order: companyName (new derived field) > nested company.name > legacy company string
     if (job.companyName) {
       return job.companyName;
     }
-    if (job.company && typeof job.company === "object" && job.company.name) {
+    if (
+      job.company &&
+      typeof job.company === "object" &&
+      "name" in job.company &&
+      typeof job.company.name === "string"
+    ) {
       return job.company.name;
     }
     if (job.company && typeof job.company === "string") {
       return job.company;
     }
-    return job.company_name || "Unknown Company";
+    return "Unknown Company";
   };
 
   // Stable data mapping function
   const mapJobData = useCallback(
     (job: any): JobAlert => ({
+      ...job,
       id: job.id,
-      title: job.title || job.job_title || "Unknown Title",
-      url: job.url || job.job_url || "",
-      company: job.company || job.company_name || "Unknown Company", // Keep for backward compatibility
-      companyName: job.companyName, // New derived field from server
-      matchedKeywords: job.matchedKeywords || job.matched_keywords || [],
-      dateFound:
-        job.dateFound ||
-        job.date_found ||
-        job.created_at ||
-        new Date().toISOString(),
-      description: job.description || job.job_description,
-      applicationDeadline: job.applicationDeadline || job.application_deadline,
-      companyId: job.companyId || job.company_id,
-      status: job.status || "New",
-      priority: job.priority,
-      salary: job.salary || job.salary_range,
+      title: job.title,
+      url: job.url,
+      companyName: job.companyName || job.company || "Unknown Company",
+      companyId: job.companyId,
+      dateFound: String(job.dateFound), // Convert to string
+      matchedKeywords: job.matchedKeywords,
+      description: job.description,
+      status: job.status,
+      priority: job.priority as "high" | "medium" | "low",
+      salary: job.salary,
       requirements: job.requirements,
+      company: job.company, // Add company field
+      applicationDeadline: job.applicationDeadline, // Add applicationDeadline
+      user_id: job.user_id,
+      tracked_website_id: job.tracked_website_id,
+      job_title: job.job_title,
+      found_at: job.found_at,
+      is_read: job.is_read,
+      jobId: job.jobId,
+      created_at: job.created_at || new Date().toISOString(),
     }),
     []
   );
@@ -204,8 +186,8 @@ export default function DashboardScreen() {
           apiRequest(`${API_BASE_URL}/companies`),
           apiRequest(`${API_BASE_URL}/jobs`),
         ]);
-        const fetchedCompanies = companiesData || [];
-        const fetchedJobs = jobsData || [];
+        const fetchedCompanies = (companiesData || []) as TrackedWebsite[];
+        const fetchedJobs = (jobsData || []) as JobAlert[];
 
         // Smart merging: only replace if we actually got data
         // Replace the jobs setting part:
@@ -217,9 +199,7 @@ export default function DashboardScreen() {
             }
             // Merge new jobs, avoid duplicates
             const existingUrls = new Set(prevJobs.map((j) => j.url));
-            const newJobs = mappedJobs.filter(
-              (j: { url: string }) => !existingUrls.has(j.url)
-            );
+            const newJobs = mappedJobs.filter((j) => !existingUrls.has(j.url));
             return isInitial ? mappedJobs : [...prevJobs, ...newJobs];
           });
         }
@@ -302,8 +282,8 @@ export default function DashboardScreen() {
 
       if (result.success) {
         // 2. Perform the optimistic update with deduplication
-        const newCompany = result.company;
-        const newJobs = (result.jobs || []).map(mapJobData);
+        const newCompany = result.company as TrackedWebsite;
+        const newJobs = (result.jobs || []).map(mapJobData) as JobAlert[];
 
         if (newCompany) {
           setTrackedCompanies((prev) => {
@@ -321,7 +301,7 @@ export default function DashboardScreen() {
             // Merge new jobs with existing ones, avoiding duplicates
             const existingUrls = new Set(prev.map((job) => job.url));
             const uniqueNewJobs = newJobs.filter(
-              (job: { url: string }) => !existingUrls.has(job.url)
+              (job) => !existingUrls.has(job.url)
             );
             console.info(
               `Adding ${uniqueNewJobs.length} new unique jobs out of ${newJobs.length} found`
@@ -341,9 +321,12 @@ export default function DashboardScreen() {
         throw new Error(result.error || "Failed to add company");
       }
     } catch (e) {
-      const error = e;
+      const error = e as Error;
       console.error("Failed to add company:", error as Error);
-      Alert.alert("Error", error.message);
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : String(error)
+      );
     } finally {
       setAddingCompany(false);
       // 3. Restart the auto-refresh timer
@@ -366,11 +349,11 @@ export default function DashboardScreen() {
   };
 
   const handleJobPress = (job: JobAlert) => {
-    setSelectedJob(job);
+    setSelectedJob(job); // This is the correct type, no change needed here.
     setShowJobModal(true);
   };
 
-  const handleDeleteJob = async (jobId: number) => {
+  const handleDeleteJob = async (jobId: string) => {
     try {
       await apiRequest(`${API_BASE_URL}/jobs/${jobId}`, { method: "DELETE" });
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
@@ -381,7 +364,7 @@ export default function DashboardScreen() {
     }
   };
 
-  const handleDeleteCompany = async (companyId: number) => {
+  const handleDeleteCompany = async (companyId: string) => {
     Alert.alert(
       "Confirm Deletion",
       "Are you sure you want to delete this company and all its associated jobs?",
@@ -516,7 +499,7 @@ export default function DashboardScreen() {
             {recentActivityJobs.length === 0 ? (
               <Text style={styles.emptyText}>No recent jobs found.</Text>
             ) : (
-              <View style={styles.jobListContainer}>
+              <View style={styles.jobInfoContainer}>
                 <ScrollView
                   horizontal={false}
                   showsVerticalScrollIndicator={false}
@@ -610,12 +593,12 @@ export default function DashboardScreen() {
       <AddCompanyModal
         visible={showAddCompanyModal}
         onClose={() => {
-          setShowAddCompanyModal(false); // Fix: Ensure modal closes
+          setShowAddCompanyModal(false);
           setEditingCompany(null);
           setIsEditing(false);
         }}
         onAddCompany={handleAddCompany}
-        editingCompany={editingCompany}
+        editingCompany={editingCompany} // Pass the state directly
         isEditing={isEditing}
       />
       <CompanyListModal
@@ -702,11 +685,13 @@ export default function DashboardScreen() {
                   selectedJob.requirements.length > 0 && (
                     <View style={styles.detailItem}>
                       <Text style={styles.detailLabel}>📚 Requirements</Text>
-                      {selectedJob.requirements.map((req, index) => (
-                        <Text key={index} style={styles.requirementItem}>
-                          • {req}
-                        </Text>
-                      ))}
+                      {selectedJob.requirements.map(
+                        (req: React.ReactNode, index: React.Key) => (
+                          <Text key={index} style={styles.requirementItem}>
+                            • {req}
+                          </Text>
+                        )
+                      )}
                     </View>
                   )}
 
@@ -888,6 +873,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#CBD5E1",
   },
+  jobListContainer: {},
   companyCard: {
     backgroundColor: "#1F2937",
     borderRadius: 12,

@@ -69,7 +69,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setUser(profile as UserProfile);
         // READ FROM AUTH METADATA, NOT USERS TABLE
         setHasCompletedOnboarding(
-          session.user.user_metadata?.has_completed_onboarding === true
+          session.user.user_metadata?.["has_completed_onboarding "] === true
         );
       } else {
         setUser(null);

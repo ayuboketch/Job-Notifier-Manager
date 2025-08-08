@@ -6,8 +6,8 @@ import { Database } from '../types'; // Assuming this path is correct after movi
 
 
 // Load variables using the standard process.env method for Expo
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env['EXPO_PUBLIC_SUPABASE_URL'];
+const supabaseAnonKey = process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'];
 
 // Add a check to give a better error message if variables are missing
 if (!supabaseUrl || !supabaseAnonKey) {

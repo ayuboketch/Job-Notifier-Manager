@@ -2,6 +2,10 @@ import { JSDOM } from 'jsdom';
 import { chromium } from 'playwright';
 import { scrapeJobs, scrapeWithoutAI, type ScrapedJob } from './index';
 
+process.env['SUPABASE_URL'] = 'https://mock-supabase-url.supabase.co';
+process.env['SUPABASE_SERVICE_ROLE_KEY'] = 'mock-service-role-key';
+process.env['GROQ_API_KEY'] = 'mock-groq-key';
+
 // Define the Job interface locally for the test file
 interface Job {
   id?: number;

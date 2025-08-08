@@ -12,8 +12,8 @@ export default function DebugSupabase() {
 
   const checkSupabaseConnection = async () => {
     const info: any = {
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || "NOT SET",
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+ supabaseUrl: process.env['EXPO_PUBLIC_SUPABASE_URL'] || "NOT SET",
+ supabaseAnonKey: process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY']
         ? "SET"
         : "NOT SET",
       timestamp: new Date().toISOString(),

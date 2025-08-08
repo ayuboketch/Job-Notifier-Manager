@@ -141,7 +141,9 @@ export default function AddCompanyModal({
     let idx = 0;
     const timer = setInterval(() => {
       if (idx < messages.length) {
-        setProgress(messages[idx++]);
+        const nextMessage = messages[idx++];
+        // Ensure the message is a string before setting
+        if (typeof nextMessage === 'string') setProgress(nextMessage);
       }
     }, 4000); // Reduced interval for more frequent updates
 

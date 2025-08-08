@@ -150,7 +150,9 @@ export default function CompanyListModal({
 
                   <Text style={styles.detailItem}>
                     📅 Last checked:{" "}
-                    {formatLastChecked(company.last_checked_at)}
+ {company.last_checked_at
+ ? formatLastChecked(company.last_checked_at)
+ : "Never checked"}
                   </Text>
                 </View>
 

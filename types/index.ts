@@ -37,6 +37,7 @@ export interface TrackedWebsite {
 export interface JobAlert {
   dateFound: string | number | Date;
   matchedKeywords: any;
+  duties?: string[];
   requirements: any;
   applicationDeadline: any;
   salary: ReactNode;
@@ -57,15 +58,13 @@ export interface JobAlert {
   created_at: string;
   tracked_website?: TrackedWebsite;
   url: string;
-  companyName: string;
   priority: "high" | "low" | "medium";
   companyId: string;
   status: string;
-  company: string;
+  company: { id: number; name: string };
   jobId: number;
   name: string;
 }
-
 export interface SavedJob {
   id: string;
   user_id: string;

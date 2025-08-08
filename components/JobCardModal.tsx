@@ -57,10 +57,10 @@ const JobCardModal: React.FC<JobCardModalProps> = ({
               <ThemedText style={styles.modalTitle}>{job.title}</ThemedText>
             </TouchableOpacity>
 
-            {job.companyName && (
+            {job.company?.name && (
               <ThemedText style={styles.modalText}>
                 <ThemedText style={styles.boldText}>Company:</ThemedText>{" "}
-                {job.companyName}
+                {job.company.name}
               </ThemedText>
             )}
             {job.salary && (
@@ -91,7 +91,7 @@ const JobCardModal: React.FC<JobCardModalProps> = ({
               </ThemedText>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={handleApply}>
+            <TouchableOpacity style={styles.button} onPress={() => handleApply(job)}>
               <ThemedText style={styles.buttonText}>Apply</ThemedText>
             </TouchableOpacity>
           </ScrollView>

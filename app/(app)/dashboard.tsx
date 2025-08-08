@@ -19,7 +19,7 @@ import CompanyListModal from "../../components/CompanyListModal";
 import JobListModal from "../../components/JobListModal";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { JobAlert, TrackedWebsite } from "../../types/"; // Import JobAlert from types.ts
+import { JobAlert, TrackedWebsite, Company } from "../../types/"; // Import JobAlert and Company from types.ts
 
 const API_BASE_URL = process.env["EXPO_PUBLIC_API_BASE_URL"]!;
 
@@ -86,13 +86,13 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingCompany, setAddingCompany] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<TrackedWebsite | null>(
-    null
+  const [editingCompany, setEditingCompany] = useState<TrackedWebsite | undefined>(
+ undefined // This will be updated below
   );
   const [isEditing, setIsEditing] = useState(false);
 
   // Use a ref to hold the interval ID
-  const refreshIntervalRef = useRef<number | null>(null);
+  const refreshIntervalRef = useRef<any | null>(null);
 
   // Memoized lists
   const priorityJobs = React.useMemo(
@@ -124,20 +124,24 @@ export default function DashboardScreen() {
     [jobs]
   );
 
+  // State for editing Company, using the correct type
+  const [editingCompanyState, setEditingCompanyState] =
+    useState<Company | undefined>(undefined);
+
   // Helper function to get company display name from various formats
   const getCompanyDisplayName = (job: JobAlert): string => {
     // Priority order: companyName (new derived field) > nested company.name > legacy company string
-    if (job.companyName) {
-      return job.companyName;
-    }
-    if (
+ if (job.company?.name) {
+ return job.company.name;
+ }
+ if (
       job.company &&
       typeof job.company === "object" &&
       "name" in job.company &&
       typeof job.company.name === "string"
     ) {
       return job.company.name;
-    }
+ }
     if (job.company && typeof job.company === "string") {
       return job.company;
     }
@@ -153,7 +157,7 @@ export default function DashboardScreen() {
       url: job.url,
       companyName: job.companyName || job.company || "Unknown Company",
       companyId: job.companyId,
-      dateFound: String(job.dateFound), // Convert to string
+ dateFound: String(job.dateFound), // Convert to string
       matchedKeywords: job.matchedKeywords,
       description: job.description,
       status: job.status,
@@ -522,7 +526,7 @@ export default function DashboardScreen() {
                         )}
                       </View>
                       <Text style={styles.jobCompany}>
-                        {getCompanyDisplayName(job)}
+ {getCompanyDisplayName(job)}
                       </Text>
                       <View style={styles.jobInfoContainer}>
                         <Text style={styles.jobInfo}>
@@ -565,7 +569,7 @@ export default function DashboardScreen() {
                       {
                         text: "Edit Current",
                         onPress: () => {
-                          setEditingCompany(company);
+                          setEditingCompanyState(company as any); // Cast temporarily, fix required in data fetching
                           setIsEditing(true);
                           setShowAddCompanyModal(true);
                         },
@@ -594,11 +598,11 @@ export default function DashboardScreen() {
         visible={showAddCompanyModal}
         onClose={() => {
           setShowAddCompanyModal(false);
-          setEditingCompany(null);
+        setEditingCompanyState(null); // Clear editing state
           setIsEditing(false);
         }}
         onAddCompany={handleAddCompany}
-        editingCompany={editingCompany} // Pass the state directly
+      editingCompany={editingCompanyState} // Pass the correctly typed state
         isEditing={isEditing}
       />
       <CompanyListModal
@@ -640,7 +644,7 @@ export default function DashboardScreen() {
                 {selectedJob.title}
               </Text>
               <TouchableOpacity onPress={() => setShowJobModal(false)}>
-                <Text style={styles.modalCloseButton}>Close</Text>
+ <Text style={styles.modalCloseButton}>Close</Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalContent}>

@@ -66,10 +66,10 @@ interface ProcessedJob {
     dateFound: string;
     companyId: number;
     priority: "high" | "medium" | "low";
-    description?: string;
-    salary?: string;
-    requirements?: string[];
-    applicationDeadline?: string;
+    description?: string | undefined;
+    salary?: string | undefined;
+    requirements?: string[] | null | undefined;
+    applicationDeadline?: string | undefined;
     company?: any;
   };
 }

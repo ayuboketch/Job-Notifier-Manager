@@ -32,11 +32,7 @@ export default function JobListModal({
 
   // Helper function to get company display name from various formats
   const getCompanyDisplayName = (job: JobAlert): string => {
-    // Priority order: companyName (new derived field) > nested company.name > legacy company string
-    if (job.companyName) {
-      // This is the preferred way to get the company name
-      return job.companyName;
-    }
+    // Access company name through the nested company object
     if (
       job.company &&
       typeof job.company === "object" &&
@@ -44,9 +40,6 @@ export default function JobListModal({
     ) {
       // Check if 'name' property exists
       return job.company.name;
-    }
-    if (job.company && typeof job.company === "string") {
-      return job.company;
     }
     return "Unknown Company";
   };
@@ -139,7 +132,7 @@ export default function JobListModal({
                   </Text>
 
                   <Text style={styles.jobDate}>
-                    📅 Found: {formatDate(job.dateFound)}
+                    📅 Found: {formatDate(String(job.dateFound))}
                   </Text>
                 </TouchableOpacity>
               ))
@@ -193,7 +186,7 @@ export default function JobListModal({
                     </Text>
                   )}
                   <Text style={styles.quickFact}>
-                    📅 Found: {formatDate(selectedJob.dateFound)}
+                    📅 Found: {formatDate(String(selectedJob.dateFound))}
                   </Text>
                   <Text style={styles.quickFact}>
                     🎯 Keywords:{" "}
@@ -216,19 +209,19 @@ export default function JobListModal({
                 )}
 
                 {/* Duties / Responsibilities */}
-                {selectedJob.duties && selectedJob.duties.length > 0 && (
-                  <Section title="Key Duties & Responsibilities">
-                    {selectedJob.duties.map((duty, i) => (
+ {selectedJob.duties && selectedJob.duties.length > 0 && (
+ <Section title="Key Duties & Responsibilities">
+ {selectedJob.duties.map((duty: string, i: number) => (
                       <Bullet key={`duty-${i}`} text={duty} />
                     ))}
-                  </Section>
+ </Section>
                 )}
 
                 {/* Requirements */}
-                {selectedJob.requirements &&
+ {selectedJob.requirements &&
                   selectedJob.requirements.length > 0 && (
                     <Section title="Requirements">
-                      {selectedJob.requirements.map((req, i) => (
+                      {selectedJob.requirements.map((req: string, i: number) => (
                         <Bullet key={`req-${i}`} text={req} />
                       ))}
                     </Section>

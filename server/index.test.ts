@@ -29,9 +29,10 @@ jest.mock('playwright', () => ({
     launch: jest.fn(() => ({
       newPage: jest.fn(async () => ({
         goto: jest.fn(),
+        on: jest.fn(), // Add this line
+        waitForTimeout: jest.fn(), // Add this line
         content: jest.fn(() => '<html><body><a href="job1.com">Job Title 1</a><a href="job2.com">Job Title 2</a></body></html>'),
         route: jest.fn((pattern: string, handler: any) => {
-          // Mock route interception - just call continue for all routes
           const mockRoute = {
             fetch: jest.fn(() => Promise.resolve({
               ok: () => false,
@@ -41,47 +42,10 @@ jest.mock('playwright', () => ({
             continue: jest.fn(),
             request: jest.fn(() => ({ url: () => 'http://example.com' }))
           };
-          // Don't actually intercept, just continue
           return Promise.resolve();
         }),
         evaluate: jest.fn((func: (args: any) => any, args: any) => {
-          if (func.toString().includes('document.querySelectorAll')) {
-            const mockHtml = `<html><body>
-              <a href="https://example.com/job/1">Software Engineer - React</a>
-              <a href="https://example.com/job/2">Senior Frontend Developer</a>
-              <a href="https://example.com/job/3">Product Manager</a>
-              <a href="https://example.com/job/4">Backend Engineer - Node.js</a>
-              <a href="https://example.com/job/5">Data Scientist</a>
-            </body></html>`;
-            const dom = new JSDOM(mockHtml);
-            const document = dom.window.document;
-
-            const jobs: ScrapedJob[] = [];
-            const kwSet = new Set(args.kws.map((k: string) => k.toLowerCase()));
-            const seen = new Set<string>();
-
-            document.querySelectorAll('a[href]').forEach((a) => {
-              const anchor = a as HTMLAnchorElement;
-              const title = (anchor.textContent || anchor.title || '').trim();
-              const url = anchor.href;
-
-              if (!title || !url || seen.has(url)) return;
-
-              const matched = ([...kwSet] as string[]).filter((k: string) => title.toLowerCase().includes(k));
-              if (kwSet.size === 0 || matched.length > 0) {
-                seen.add(url);
-                jobs.push({
-                  title,
-                  url,
-                  companyNameTmp: args.coName,
-                  matchedKeywords: [...new Set(matched)],
-                  dateFound: new Date().toISOString(),
-                });
-              }
-            });
-            return jobs;
-          }
-          return Promise.resolve();
+          // ... rest of your existing evaluate mock
         }),
       })),
       close: jest.fn(),

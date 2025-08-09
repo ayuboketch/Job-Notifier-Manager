@@ -1,37 +1,72 @@
 import { chromium } from 'playwright';
-import { scrapeJobs, scrapeWithoutAI } from './index';
+import { ScrapedJob, scrapeJobs, scrapeWithoutAI } from './index';
 
+// Mock environment variables
 process.env['SUPABASE_URL'] = 'https://mock-supabase-url.supabase.co';
 process.env['SUPABASE_SERVICE_ROLE_KEY'] = 'mock-service-role-key';
 process.env['GROQ_API_KEY'] = 'mock-groq-key';
 
-// Define the Job interface locally for the test file
-interface Job {
-  id?: number;
-  title: string;
-  url: string;
-  company: string;
-  matchedKeywords: string[];
-  dateFound: string;
-  description?: string;
-  applicationDeadline?: string | null;
-  companyId?: number;
-  status?: 'New' | 'Seen' | 'Applied' | 'Archived';
-  priority?: string;
-  salary?: string | null | undefined;
-  requirements?: string[] | null;
-}
 
-// Mock playwright and node-fetch
-jest.mock('playwright', () => ({
-  chromium: {
-    launch: jest.fn(() => ({
-      newPage: jest.fn(async () => ({
+jest.mock('playwright', () => {
+  const actualPlaywright = jest.requireActual('playwright');
+  return {
+    chromium: {
+      launch: jest.fn(() => ({
+        newPage: jest.fn(async () => ({
         goto: jest.fn(),
         on: jest.fn(), // Add this line
-        waitForTimeout: jest.fn(), // Add this line
-        content: jest.fn(() => '<html><body><a href="job1.com">Job Title 1</a><a href="job2.com">Job Title 2</a></body></html>'),
-        route: jest.fn((pattern: string, handler: any) => {
+        waitForTimeout: jest.fn(async (ms: number) => {
+          // Mock wait, doesn't need to do anything real
+          await new Promise(resolve => setTimeout(resolve, ms / 10)); // Simulate a short wait
+        }),
+         // Mock content to simulate HTML scraping
+        content: jest.fn(() => `
+          <html>
+            <body>
+              <a href="/jobs/software-engineer-react">Software Engineer - React</a>
+              <div>Some text about React</div>
+              <a href="/careers/frontend-developer">Senior Frontend Developer</a>
+              <div>Frontend requirements</div>
+              <a href="/positions/backend-engineer">Backend Engineer</a>
+              <a href="/data-scientist-role">Data Scientist</a>
+              <a href="/product-manager-opening">Product Manager</a>
+            </body>
+          </html>
+        `),
+        evaluate: jest.fn(async (func: (args: any) => any, args: any) => {
+          // This mock simulates the HTML scraping logic found in scrapeJobs fallback
+          const { kws, coName } = args;
+          const kwSet = new Set(kws.map((k: string) => k.toLowerCase()));
+          const seen = new Set<string>();
+          const htmlJobs: ScrapedJob[] = [];
+
+          // Simulate document.querySelectorAll('a[href]')
+          const mockAnchors = [
+            { textContent: 'Software Engineer - React', href: '/jobs/software-engineer-react' },
+            { textContent: 'Senior Frontend Developer', href: '/careers/frontend-developer' },
+            { textContent: 'Backend Engineer', href: '/positions/backend-engineer' },
+            { textContent: 'Data Scientist', href: '/data-scientist-role' },
+            { textContent: 'Product Manager', href: '/product-manager-opening' },
+          ];
+
+          mockAnchors.forEach((a) => {
+            const title = (a.textContent || '').trim();
+            const url = a.href;
+
+            if (!title || !url || seen.has(url) || title.length < 3) { return; }
+
+            const matched = Array.from(kwSet).filter((k) => title.toLowerCase().includes(k as string));
+            if (kwSet.size === 0 || matched.length > 0) {
+              seen.add(url);
+              htmlJobs.push({
+                title, url, companyNameTmp: coName, matchedKeywords: [...new Set(matched)],
+                dateFound: new Date().toISOString(), // Add a mock date
+              });
+            }
+          });
+          return htmlJobs;
+        }),
+        route: jest.fn(async (pattern: string, handler: any) => {
           const mockRoute = {
             fetch: jest.fn(() => Promise.resolve({
               ok: () => false,
@@ -41,16 +76,15 @@ jest.mock('playwright', () => ({
             continue: jest.fn(),
             request: jest.fn(() => ({ url: () => 'http://example.com' }))
           };
+          // Call the actual handler if needed, or just resolve
           return Promise.resolve();
-        }),
-        evaluate: jest.fn((func: (args: any) => any, args: any) => {
-          // ... rest of your existing evaluate mock
         }),
       })),
       close: jest.fn(),
-    })),
-  },
-}));
+      })),
+    },
+  };
+});
 
 jest.mock('node-fetch', () => jest.fn());
 

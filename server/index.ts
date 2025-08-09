@@ -881,147 +881,151 @@ app.use((err: any, req: Request, res: express.Response, next: express.NextFuncti
 });
 
 /* ---------- Scheduled tasks -------------------------------------------- */
-cron.schedule('*/15 * * * *', async () => {
-  console.log('[CRON] Running scheduled job check...');
-  
-  try {
-    // Get all active companies for all users
-    const { data: companies, error } = await supabase
-      .from('companies')
-      .select('*')
-      .eq('status', 'active');
-      
-    if (error) {
-      console.error('[CRON] Database error:', error);
-      return;
-    }
-
-    if (!companies || companies.length === 0) {
-      console.log('[CRON] No active companies found.');
-      return;
-    }
-
-    const now = new Date();
-    const companiesDueForCheck = companies.filter(company => {
-      try {
-        if (!company.last_checked_at) return true;
-
-        const lastChecked = new Date(company.last_checked_at);
-        const intervalMinutes = company.check_interval_minutes || 1440;
-        const nextCheckTime = new Date(lastChecked.getTime() + (intervalMinutes * 60 * 1000));
-        
-        const isDue = now >= nextCheckTime;
-        return isDue;
-      } catch (err) {
-        console.error(`[CRON] Error processing ${company.name}:`, err);
-        return false;
-      }
-    });
-
-    if (companiesDueForCheck.length === 0) {
-      console.log('[CRON] ✅ No companies due for checking right now.');
-      return;
-    }
-
-    console.log(`[CRON] 🔍 ${companiesDueForCheck.length} companies due`);
-
-    const maxCompaniesPerRun = 1;
-    const companiesToCheck = companiesDueForCheck.slice(0, maxCompaniesPerRun);
+if (process.env['NODE_ENV'] !== 'test') {
+  cron.schedule('*/15 * * * *', async () => {
+    console.log('[CRON] Running scheduled job check...');
     
-    let browser;
     try {
-      browser = await chromium.launch({ 
-        headless: true, 
-        args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+      // Get all active companies for all users
+      const { data: companies, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('status', 'active');
+        
+      if (error) {
+        console.error('[CRON] Database error:', error);
+        return;
+      }
+
+      if (!companies || companies.length === 0) {
+        console.log('[CRON] No active companies found.');
+        return;
+      }
+
+      const now = new Date();
+      const companiesDueForCheck = companies.filter(company => {
+        try {
+          if (!company.last_checked_at) return true;
+
+          const lastChecked = new Date(company.last_checked_at);
+          const intervalMinutes = company.check_interval_minutes || 1440;
+          const nextCheckTime = new Date(lastChecked.getTime() + (intervalMinutes * 60 * 1000));
+          
+          const isDue = now >= nextCheckTime;
+          return isDue;
+        } catch (err) {
+          console.error(`[CRON] Error processing ${company.name}:`, err);
+          return false;
+        }
       });
 
-      for (const company of companiesToCheck) {
-        let page;
-        try {
-          console.log(`[CRON] 🚀 Processing ${company.name}...`);
-          page = await browser.newPage();
-          
-          let foundJobs = await scrapeJobs(page, company.keywords, company.name, company.career_page_url);
-          if (foundJobs.length === 0) {
-            foundJobs = await scrapeWithoutAI(company);
-          }
+      if (companiesDueForCheck.length === 0) {
+        console.log('[CRON] ✅ No companies due for checking right now.');
+        return;
+      }
 
-          // Check existing jobs for THIS USER only
-          const { data: existingJobs } = await supabase
-            .from('jobs')
-            .select('url')
-            .eq('companyId', company.id)
-            .eq('user_id', company.user_id); // Filter by user
+      console.log(`[CRON] 🔍 ${companiesDueForCheck.length} companies due`);
+
+      const maxCompaniesPerRun = 1;
+      const companiesToCheck = companiesDueForCheck.slice(0, maxCompaniesPerRun);
+      
+      let browser;
+      try {
+        browser = await chromium.launch({ 
+          headless: true, 
+          args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+        });
+
+        for (const company of companiesToCheck) {
+          let page;
+          try {
+            console.log(`[CRON] 🚀 Processing ${company.name}...`);
+            page = await browser.newPage();
             
-          const existingUrls = new Set(existingJobs?.map(e => e.url) || []);
-          const newJobs = foundJobs.filter(f => f.url && !existingUrls.has(f.url));
-          
-          if (newJobs.length > 0) {
-            const jobsToInsert = newJobs.map(job => {
-              const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
-              return { 
-                ...dbJob, 
-                companyId: company.id, 
-                priority: company.priority, 
-                status: 'New',
-                user_id: company.user_id // Add user ID
-              };
-            });
+            let foundJobs = await scrapeJobs(page, company.keywords, company.name, company.career_page_url);
+            if (foundJobs.length === 0) {
+              foundJobs = await scrapeWithoutAI(company);
+            }
+
+            // Check existing jobs for THIS USER only
+            const { data: existingJobs } = await supabase
+              .from('jobs')
+              .select('url')
+              .eq('companyId', company.id)
+              .eq('user_id', company.user_id); // Filter by user
+              
+            const existingUrls = new Set(existingJobs?.map(e => e.url) || []);
+            const newJobs = foundJobs.filter(f => f.url && !existingUrls.has(f.url));
             
-            const { error: insertError } = await supabase.from('jobs').insert(jobsToInsert);
-            if (insertError) {
-              console.error(`[CRON] Failed to insert jobs for ${company.name}:`, insertError);
+            if (newJobs.length > 0) {
+              const jobsToInsert = newJobs.map(job => {
+                const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
+                return { 
+                  ...dbJob, 
+                  companyId: company.id, 
+                  priority: company.priority, 
+                  status: 'New',
+                  user_id: company.user_id // Add user ID
+                };
+              });
+              
+              const { error: insertError } = await supabase.from('jobs').insert(jobsToInsert);
+              if (insertError) {
+                console.error(`[CRON] Failed to insert jobs for ${company.name}:`, insertError);
+              } else {
+                console.log(`[CRON] ✅ Added ${newJobs.length} new jobs for ${company.name}`);
+              }
             } else {
-              console.log(`[CRON] ✅ Added ${newJobs.length} new jobs for ${company.name}`);
+              console.log(`[CRON] ℹ️  No new jobs for ${company.name}`);
             }
-          } else {
-            console.log(`[CRON] ℹ️  No new jobs for ${company.name}`);
-          }
-          
-          const { error: updateError } = await supabase
-            .from('companies')
-            .update({ last_checked_at: new Date().toISOString() })
-            .eq('id', company.id);
             
-          if (updateError) {
-            console.error(`[CRON] Failed to update last_checked_at for ${company.name}:`, updateError);
-          }
-          
-        } catch (err: any) {
-          console.error(`[CRON] ❌ Error processing ${company.name}:`, err.message);
-        } finally {
-          if (page && !page.isClosed()) {
-            try {
-              await page.close();
-            } catch (closeError) {
-              console.warn(`[CRON] Failed to close page:`, closeError);
+            const { error: updateError } = await supabase
+              .from('companies')
+              .update({ last_checked_at: new Date().toISOString() })
+              .eq('id', company.id);
+              
+            if (updateError) {
+              console.error(`[CRON] Failed to update last_checked_at for ${company.name}:`, updateError);
+            }
+            
+          } catch (err: any) {
+            console.error(`[CRON] ❌ Error processing ${company.name}:`, err.message);
+          } finally {
+            if (page && !page.isClosed()) {
+              try {
+                await page.close();
+              } catch (closeError) {
+                console.warn(`[CRON] Failed to close page:`, closeError);
+              }
             }
           }
         }
-      }
-    } catch (browserError) {
-      console.error('[CRON] Browser error:', browserError);
-    } finally {
-      if (browser) {
-        try {
-          await browser.close();
-        } catch (closeError) {
-          console.warn('[CRON] Failed to close browser:', closeError);
+      } catch (browserError) {
+        console.error('[CRON] Browser error:', browserError);
+      } finally {
+        if (browser) {
+          try {
+            await browser.close();
+          } catch (closeError) {
+            console.warn('[CRON] Failed to close browser:', closeError);
+          }
         }
       }
+    } catch (mainError) {
+      console.error('[CRON] Main cron error:', mainError);
     }
-  } catch (mainError) {
-    console.error('[CRON] Main cron error:', mainError);
-  }
-});
+  });
+}
 
 
-/* ---------- Server startup - FIXED ------------------------------------ */
-// ALWAYS start the server, not just in non-test environments
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-  console.log(`📱 Mobile access: http://192.168.100.88:${PORT}`);
-  console.log(`🔗 Health check: http://192.168.100.88:${PORT}/health`);
-});
+/* ---------- Server startup ------------------------------------ */
+if (process.env['NODE_ENV'] !== 'test') {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+    // Replace with your actual mobile IP or hostname
+    console.log(`📱 Mobile access: http://192.168.100.88:${PORT}`); 
+    console.log(`🔗 Health check: http://192.168.100.88:${PORT}/health`);
+  });
+}
 
 export { app, scrapeJobs, scrapeWithoutAI, type ScrapedJob };

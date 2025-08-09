@@ -15,7 +15,7 @@ export interface User {
 }
 
 export interface TrackedWebsite {
-  id: string;
+  id: number;
   user_id: string;
   company_name: string;
   website_url: string;
@@ -32,6 +32,23 @@ export interface TrackedWebsite {
   career_page_url: string;
   status: "active" | "inactive";
   check_interval_minutes: number;
+  companyId: number;
+  company_id: number;
+}
+export interface Company {
+  id: number;
+  name: string;
+  website_url: string;
+  careers_page_url: string;
+  is_active: boolean;
+  check_frequency_hours: number;
+  last_checked_at?: string;
+  created_at: string;
+  updated_at: string;
+  keywords?: string[];
+  priority: "high" | "low" | "medium";
+  status: "active" | "inactive";
+  check_interval_minutes: number;
 }
 
 export interface JobAlert {
@@ -43,7 +60,7 @@ export interface JobAlert {
   salary: ReactNode;
   title: ReactNode;
   description: any;
-  id: string;
+  id: number;
   user_id: string;
   tracked_website_id: string;
   job_title: string;
@@ -59,7 +76,7 @@ export interface JobAlert {
   tracked_website?: TrackedWebsite;
   url: string;
   priority: "high" | "low" | "medium";
-  companyId: string;
+  companyId: number;
   status: string;
   company: { id: number; name: string };
   jobId: number;

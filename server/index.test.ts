@@ -1,6 +1,5 @@
-import { JSDOM } from 'jsdom';
 import { chromium } from 'playwright';
-import { scrapeJobs, scrapeWithoutAI, type ScrapedJob } from './index';
+import { scrapeJobs, scrapeWithoutAI } from './index';
 
 process.env['SUPABASE_URL'] = 'https://mock-supabase-url.supabase.co';
 process.env['SUPABASE_SERVICE_ROLE_KEY'] = 'mock-service-role-key';
@@ -19,7 +18,7 @@ interface Job {
   companyId?: number;
   status?: 'New' | 'Seen' | 'Applied' | 'Archived';
   priority?: string;
-  salary?: string | null;
+  salary?: string | null | undefined;
   requirements?: string[] | null;
 }
 

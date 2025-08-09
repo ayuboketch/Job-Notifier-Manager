@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Company } from "../types";
+import { TrackedWebsite } from "../types";
 
 // Add these types/constants - you may need to adjust based on your actual API setup
 const API_BASE_URL =
@@ -46,7 +46,7 @@ interface AddCompanyModalProps {
     checkInterval: string;
   }) => Promise<void>;
   onCompanyAdded?: () => void;
-  editingCompany?: Company;
+  editingCompany?: TrackedWebsite | undefined;
   isEditing?: boolean;
 }
 

@@ -67,9 +67,9 @@ interface ProcessedJob {
     companyId: number;
     priority: "high" | "medium" | "low";
     description?: string | undefined;
-    salary?: string | undefined;
+    salary?: string | null | undefined;
     requirements?: string[] | null | undefined;
-    applicationDeadline?: string | undefined;
+    applicationDeadline?: string | null | undefined;
     company?: any;
   };
 }

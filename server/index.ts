@@ -48,7 +48,7 @@ interface ScrapedJob {
   companyId?: number;
   status?: 'New' | 'Seen' | 'Applied' | 'Archived';
   priority?: string;
-  salary?: string | null;
+  salary?: string | null | undefined;
   requirements?: string[] | null;
   // Transient fields that callers can discard
   companyNameTmp?: string;

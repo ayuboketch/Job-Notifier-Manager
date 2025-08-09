@@ -19,7 +19,7 @@ import CompanyListModal from "../../components/CompanyListModal";
 import JobListModal from "../../components/JobListModal";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabase";
-import { JobAlert, TrackedWebsite, Company } from "../../types/"; // Import JobAlert and Company from types.ts
+import { JobAlert, TrackedWebsite } from "../../types/";
 
 const API_BASE_URL = process.env["EXPO_PUBLIC_API_BASE_URL"]!;
 
@@ -126,7 +126,7 @@ export default function DashboardScreen() {
 
   // State for editing Company, using the correct type
   const [editingCompanyState, setEditingCompanyState] =
-    useState<Company | undefined>(undefined);
+    useState<TrackedWebsite | undefined>(undefined);
 
   // Helper function to get company display name from various formats
   const getCompanyDisplayName = (job: JobAlert): string => {
@@ -360,7 +360,7 @@ export default function DashboardScreen() {
   const handleDeleteJob = async (jobId: string) => {
     try {
       await apiRequest(`${API_BASE_URL}/jobs/${jobId}`, { method: "DELETE" });
-      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      setJobs((prev) => prev.filter((job) => (job.id as string | number) !== jobId));
       setShowJobModal(false);
       Alert.alert("Success", "Job removed successfully.");
     } catch (_e) {
@@ -383,10 +383,10 @@ export default function DashboardScreen() {
                 method: "DELETE",
               });
               setTrackedCompanies((prev) =>
-                prev.filter((company) => company.id !== companyId)
+                prev.filter((company) => (company.id as string | number) !== companyId)
               );
               setJobs((prev) =>
-                prev.filter((job) => job.companyId !== companyId)
+                prev.filter((job) => (job.companyId as string | number) !== companyId)
               );
               Alert.alert("Success", "Company deleted successfully.");
             } catch (e) {
@@ -582,7 +582,7 @@ export default function DashboardScreen() {
                     style={styles.companyDeleteButton}
                     onPress={(e) => {
                       e.stopPropagation();
-                      handleDeleteCompany(company.id);
+                      handleDeleteCompany((company.id as unknown as string));
                     }}
                   >
                     <Text style={styles.companyDeleteButtonText}>Delete</Text>
@@ -598,7 +598,7 @@ export default function DashboardScreen() {
         visible={showAddCompanyModal}
         onClose={() => {
           setShowAddCompanyModal(false);
-        setEditingCompanyState(null); // Clear editing state
+        setEditingCompanyState(undefined); // Clear editing state
           setIsEditing(false);
         }}
         onAddCompany={handleAddCompany}
@@ -723,7 +723,7 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => handleDeleteJob(selectedJob.id)}
+                  onPress={() => handleDeleteJob((selectedJob.id as unknown as string))}
                 >
                   <Text style={styles.deleteButtonText}>🗑️ Delete Job</Text>
                 </TouchableOpacity>

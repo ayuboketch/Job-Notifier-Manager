@@ -55,7 +55,7 @@ jest.mock('playwright', () => {
 
             if (!title || !url || seen.has(url) || title.length < 3) { return; }
 
-            const matched = Array.from(kwSet).filter((k) => title.toLowerCase().includes(k as string));
+            const matched = Array.from(kwSet).filter((k): k is string => typeof k === 'string' && title.toLowerCase().includes(k.toLowerCase()));
             if (kwSet.size === 0 || matched.length > 0) {
               seen.add(url);
               htmlJobs.push({

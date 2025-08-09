@@ -315,6 +315,7 @@ async function scrapeJobs(
           const anchor = a as HTMLAnchorElement;
           const title = (anchor.textContent || anchor.title || '').trim();
           const url = anchor.href;
+ console.log({ title, url });
 
           if (!title || !url || seen.has(url)) return;
 

@@ -105,3 +105,45 @@ export type DatabaseTables = {
     Update: JobUpdate;
   };
 };
+export type Database = {
+  // ...other tables
+  companies: {
+    Row: {
+      id: number;
+      created_at: string;
+      user_id: string;
+      name: string;
+      url: string;
+      career_page_url: string;
+      keywords: string[];
+      priority: 'high' | 'medium' | 'low';
+      status: 'active' | 'inactive';
+      check_interval_minutes: number;
+      last_checked_at?: string | null;
+    };
+    Insert: {
+      created_at?: string;
+      user_id: string;
+      name: string;
+      url: string;
+      career_page_url: string;
+      keywords: string[];
+      priority: 'high' | 'medium' | 'low';
+      status: 'active' | 'inactive';
+      check_interval_minutes: number;
+      last_checked_at?: string | null;
+    };
+    Update: Partial<{
+      created_at: string;
+      user_id: string;
+      name: string;
+      url: string;
+      career_page_url: string;
+      keywords: string[];
+      priority: 'high' | 'medium' | 'low';
+      status: 'active' | 'inactive';
+      check_interval_minutes: number;
+      last_checked_at?: string | null;
+    }>;
+  };
+};

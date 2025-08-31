@@ -1,0 +1,14 @@
+
+{
+  "functions": {
+    "server/index.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/check-jobs",
+      "schedule": "0 */2 * * *"
+    }
+  ]
+}

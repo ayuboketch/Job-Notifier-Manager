@@ -1,46 +1,36 @@
 // lib/database.ts
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import {
-  Company,
-  CompanyInsert,
-  CompanyUpdate,
-  DatabaseTables,
-  Job,
-  JobInsert,
-  JobUpdate,
-  validateCompany,
-  validateCompanyInsert,
-  validateJob,
-  validateJobInsert
-} from '../types/database';
+import type { Database } from '../types/database';
+
+// Use these for type safety:
+type Company = Database['public']['Tables']['companies']['Row'];
+type CompanyInsert = Database['public']['Tables']['companies']['Insert'];
+type CompanyUpdate = Database['public']['Tables']['companies']['Update'];
+type Job = Database['public']['Tables']['jobs']['Row'];
+type JobInsert = Database['public']['Tables']['jobs']['Insert'];
+type JobUpdate = Database['public']['Tables']['jobs']['Update'];
 
 // Type-safe database operations
 export class TypeSafeDatabase {
-  private supabase: SupabaseClient<{ public: { Tables: DatabaseTables } }>;
+  private supabase: SupabaseClient<Database>;
 
   constructor(supabaseUrl: string, supabaseKey: string) {
-    this.supabase = createClient<{ public: { Tables: DatabaseTables } }>(supabaseUrl, supabaseKey);
+    this.supabase = createClient<Database>(supabaseUrl, supabaseKey);
   }
 
   // Company operations
   async insertCompany(data: CompanyInsert): Promise<{ data: Company | null; error: any }> {
     try {
-      // Validate data before inserting
-      const validatedData = validateCompanyInsert(data, data.user_id);
-      
       const { data: result, error } = await this.supabase
         .from('companies')
-        .insert([validatedData])
+        .insert([data])
         .select()
         .single();
-      
+
       if (error) {
         return { data: null, error };
       }
-      
-      // Validate the returned data
-      const validatedResult = validateCompany(result);
-      return { data: validatedResult, error: null };
+      return { data: result, error: null };
     } catch (validationError) {
       return { data: null, error: validationError };
     }
@@ -292,3 +282,67 @@ export function getDatabase(supabaseUrl?: string, supabaseKey?: string): TypeSaf
 
 // Export for direct usage
 export default TypeSafeDatabase;
+function validateCompanyInsert(
+  data: {
+    career_page_url?: string | null;
+    careerpageurl?: string | null;
+    check_interval?: number | null;
+    check_interval_minutes?: number | null;
+    created_at?: string | null;
+    id?: number;
+    keywords?: string[] | null;
+    last_checked?: string | null;
+    last_checked_at?: string | null;
+    name: string;
+    priority?: string | null;
+    status?: string | null;
+    url?: string | null;
+    user_id?: string | null;
+  },
+  user_id: string | null | undefined
+) {
+  // Ensure required fields
+  if (!data.name || typeof data.name !== 'string') {
+    throw new Error('Company name is required and must be a string.');
+  }
+  if (!user_id || typeof user_id !== 'string') {
+    throw new Error('user_id is required and must be a string.');
+  }
+
+  // Normalize fields
+  const normalized: typeof data = {
+    ...data,
+    user_id,
+    // Prefer career_page_url, fallback to careerpageurl
+    career_page_url: data.career_page_url ?? data.careerpageurl ?? null,
+    check_interval: data.check_interval ?? data.check_interval_minutes ?? null,
+    created_at: data.created_at ?? new Date().toISOString(),
+    keywords: Array.isArray(data.keywords) ? data.keywords : null,
+    last_checked: data.last_checked ?? data.last_checked_at ?? null,
+    priority: data.priority ?? null,
+    status: data.status ?? null,
+    url: data.url ?? null,
+  };
+
+  // Remove deprecated/duplicate fields
+  delete (normalized as any).careerpageurl;
+  delete (normalized as any).check_interval_minutes;
+  delete (normalized as any).last_checked_at;
+
+  return normalized;
+}
+
+function validateCompany(company: Company): Company {
+  // Here you would add validation logic if needed, e.g., using Zod.
+  // For now, we'll just return the company as is, assuming Supabase returns valid data.
+  // If you want to enforce stricter types or transformations, this is the place.
+  return company;
+}
+
+function validateJob(item: { application_deadline: string | null; companyId: number | null; created_at: string | null; dateFound: string | null; description: string | null; duties: string[] | null; id: number; matchedKeywords: string[] | null; priority: string | null; requirements: string[] | null; salary: string | null; status: string | null; title: string; url: string; user_id: string | null; }): any {
+  throw new Error('Function not implemented.');
+}
+function validateJobInsert(data: { application_deadline?: string | null; companyId?: number | null; created_at?: string | null; dateFound?: string | null; description?: string | null; duties?: string[] | null; id?: number; matchedKeywords?: string[] | null; priority?: string | null; requirements?: string[] | null; salary?: string | null; status?: string | null; title: string; url: string; user_id?: string | null; }) {
+  throw new Error('Function not implemented.');
+}
+

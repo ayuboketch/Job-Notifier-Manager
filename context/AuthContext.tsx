@@ -34,6 +34,7 @@ interface AuthContextType {
   ) => Promise<{ success: boolean; message: string }>;
   signOut: () => Promise<void>;
   updateOnboardingStatus: () => Promise<void>;
+  refreshSession: () => Promise<void>; // Add this method
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,33 +56,100 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Error getting initial session:", error);
+        setSession(null);
+        setUser(null);
+        setHasCompletedOnboarding(false);
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-
-        setUser(profile as UserProfile);
-        // READ FROM AUTH METADATA, NOT USERS TABLE
-        setHasCompletedOnboarding(
-          session.user.user_metadata?.["has_completed_onboarding "] === true
-        );
+        handleUserSession(session);
       } else {
         setUser(null);
         setHasCompletedOnboarding(false);
+        setLoading(false);
       }
-      setLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state change:", event, session?.user?.id);
+
+      // Handle sign out or invalid session
+      if (event === "SIGNED_OUT" || !session) {
+        setSession(null);
+        setUser(null);
+        setHasCompletedOnboarding(false);
+        setLoading(false);
+        return;
+      }
+
+      // Handle token refresh failures
+      if (event === "TOKEN_REFRESHED") {
+        console.log("Token refreshed successfully");
+      }
+
+      setSession(session);
+      await handleUserSession(session);
     });
 
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
+
+  const handleUserSession = async (session: Session) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        // If profile doesn't exist, create basic user object
+        setUser(session.user as UserProfile);
+      } else {
+        setUser(profile as UserProfile);
+      }
+
+      // FIX: Remove the extra space in the key name
+      setHasCompletedOnboarding(
+        session.user.user_metadata?.["has_completed_onboarding"] === true
+      );
+    } catch (error) {
+      console.error("Error handling user session:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshSession = async () => {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.refreshSession();
+      if (error) {
+        console.error("Failed to refresh session:", error);
+        // Force sign out on refresh failure
+        await signOut();
+        throw error;
+      }
+      return session;
+    } catch (error) {
+      console.error("Session refresh failed:", error);
+      throw error;
+    }
+  };
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
@@ -97,7 +165,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       });
 
       if (error) return { success: false, message: error.message };
-      // If there's a user but no session, it means email confirmation is needed. This is a success.
+
       if (data.user && !data.session) {
         return {
           success: true,
@@ -129,6 +197,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
+    setHasCompletedOnboarding(false);
   };
 
   const updateOnboardingStatus = async () => {
@@ -138,7 +209,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     }
 
     console.log("🟢 Starting onboarding completion: updating local state...");
-    setHasCompletedOnboarding(true); // Immediate UI update
+    setHasCompletedOnboarding(true);
 
     const updateWithRetry = async (retryCount = 0) => {
       console.log(
@@ -146,21 +217,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       );
 
       try {
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("⏱️ Timeout after 3s")), 3000)
-        );
-
-        const updatePromise = supabase.auth.updateUser({
+        const { error } = await supabase.auth.updateUser({
           data: { has_completed_onboarding: true },
         });
 
-        const result = (await Promise.race([
-          updatePromise,
-          timeoutPromise,
-        ])) as Awaited<ReturnType<typeof supabase.auth.updateUser>>;
-
-        if (result.error) {
-          console.error("❌ Supabase returned an error:", result.error.message);
+        if (error) {
+          console.error("❌ Supabase returned an error:", error.message);
           if (retryCount < 2) {
             console.log(`🔁 Retrying... (${retryCount + 1}/2)`);
             setTimeout(() => updateWithRetry(retryCount + 1), 1000);
@@ -189,7 +251,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     signUp,
     signOut,
     updateOnboardingStatus,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthContext;

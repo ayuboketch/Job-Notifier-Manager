@@ -2,7 +2,8 @@
 import { cleanJobsWithAI, scrapeJobs, scrapeWithoutAI } from '@/server';
 import { createClient } from '@supabase/supabase-js';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { chromium } from 'playwright';
+// import { chromium } from 'playwright';
+import { chromium } from 'playwright-core';
 
 // Initialize Supabase
 const supabaseUrl = process.env['SUPABASE_URL']!;

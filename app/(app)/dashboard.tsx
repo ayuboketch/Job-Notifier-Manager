@@ -25,46 +25,118 @@ const API_BASE_URL = process.env["EXPO_PUBLIC_API_BASE_URL"]!;
 
 // Enhanced fetch function with proper error handling
 async function apiRequest(url: string, options: RequestInit = {}) {
-  try {
-    console.log(`Making API request to: ${url}`);
+  const maxRetries = 2;
+  let currentRetry = 0;
 
-    // Get current session token
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+  while (currentRetry <= maxRetries) {
+    try {
+      console.log(
+        `Making API request to: ${url} (attempt ${currentRetry + 1})`
+      );
 
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: session?.access_token
-          ? `Bearer ${session.access_token}`
-          : "",
-        ...options.headers,
-      },
-    });
+      // Get current session token with retry logic
+      let session;
+      try {
+        const {
+          data: { session: currentSession },
+          error,
+        } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Session error:", error);
+          throw new Error("Authentication failed. Please log in again.");
+        }
+        session = currentSession;
+      } catch (sessionError) {
+        console.error("Failed to get session:", sessionError);
+        throw new Error("Authentication failed. Please log in again.");
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API Error: ${response.status} - ${errorText}`);
-      throw new Error(
-        `HTTP ${response.status}: ${errorText || "Request failed"}`
+      if (!session?.access_token) {
+        throw new Error("No valid session found. Please log in again.");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            ...options.headers,
+          },
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          // Handle specific error codes
+          if (response.status === 401) {
+            throw new Error("Session expired. Please log in again.");
+          }
+          if (response.status === 404) {
+            throw new Error(
+              "API endpoint not found. Please check server status."
+            );
+          }
+          if (response.status >= 500) {
+            throw new Error("Server error. Please try again later.");
+          }
+
+          const errorText = await response.text().catch(() => "Unknown error");
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+
+        if (fetchError.name === "AbortError") {
+          throw new Error("Request timed out. Please check your connection.");
+        }
+        throw fetchError;
+      }
+    } catch (error: any) {
+      console.error(`API Request failed (attempt ${currentRetry + 1}):`, error);
+
+      // Don't retry for authentication errors
+      if (
+        error.message.includes("Authentication") ||
+        error.message.includes("Session expired")
+      ) {
+        throw error;
+      }
+
+      // Don't retry for client errors (4xx)
+      if (error.message.includes("HTTP 4")) {
+        throw error;
+      }
+
+      currentRetry++;
+
+      if (currentRetry > maxRetries) {
+        if (
+          error instanceof TypeError &&
+          error.message.includes("Network request failed")
+        ) {
+          throw new Error(
+            "Network connection failed. Please check your internet connection and ensure the server is running."
+          );
+        }
+        throw error;
+      }
+
+      // Wait before retrying (exponential backoff)
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.pow(2, currentRetry) * 1000)
       );
     }
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("API Request failed:", error);
-    if (
-      error instanceof TypeError &&
-      error.message.includes("Network request failed")
-    ) {
-      throw new Error(
-        "Network connection failed. Please check your internet connection and ensure the server is running."
-      );
-    }
-    throw error;
   }
+
+  throw new Error("Request failed after maximum retries");
 }
 
 export { apiRequest };
@@ -86,8 +158,10 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [addingCompany, setAddingCompany] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<TrackedWebsite | undefined>(
- undefined // This will be updated below
+  const [editingCompany, setEditingCompany] = useState<
+    TrackedWebsite | undefined
+  >(
+    undefined // This will be updated below
   );
   const [isEditing, setIsEditing] = useState(false);
 
@@ -125,23 +199,24 @@ export default function DashboardScreen() {
   );
 
   // State for editing Company, using the correct type
-  const [editingCompanyState, setEditingCompanyState] =
-    useState<TrackedWebsite | undefined>(undefined);
+  const [editingCompanyState, setEditingCompanyState] = useState<
+    TrackedWebsite | undefined
+  >(undefined);
 
   // Helper function to get company display name from various formats
   const getCompanyDisplayName = (job: JobAlert): string => {
     // Priority order: companyName (new derived field) > nested company.name > legacy company string
- if (job.company?.name) {
- return job.company.name;
- }
- if (
+    if (job.company?.name) {
+      return job.company.name;
+    }
+    if (
       job.company &&
       typeof job.company === "object" &&
       "name" in job.company &&
       typeof job.company.name === "string"
     ) {
       return job.company.name;
- }
+    }
     if (job.company && typeof job.company === "string") {
       return job.company;
     }
@@ -157,7 +232,7 @@ export default function DashboardScreen() {
       url: job.url,
       companyName: job.companyName || job.company || "Unknown Company",
       companyId: job.companyId,
- dateFound: String(job.dateFound), // Convert to string
+      dateFound: String(job.dateFound), // Convert to string
       matchedKeywords: job.matchedKeywords,
       description: job.description,
       status: job.status,
@@ -178,81 +253,131 @@ export default function DashboardScreen() {
   );
 
   // Stable data fetching function with smart merging
+  const fetchingRef = useRef(false);
   const fetchData = useCallback(
     async (isInitial = false) => {
+      // Prevent multiple concurrent requests
+      if (fetchingRef.current && !isInitial) {
+        console.log("Fetch already in progress, skipping...");
+        return;
+      }
+
+      fetchingRef.current = true;
+
       if (isInitial) {
         setLoading(true);
       }
       setError(null);
+
       try {
         console.log("Fetching data from server...");
-        const [companiesData, jobsData] = await Promise.all([
-          apiRequest(`${API_BASE_URL}/companies`),
-          apiRequest(`${API_BASE_URL}/jobs`),
-        ]);
-        const fetchedCompanies = (companiesData || []) as TrackedWebsite[];
-        const fetchedJobs = (jobsData || []) as JobAlert[];
 
-        // Smart merging: only replace if we actually got data
-        // Replace the jobs setting part:
-        if (fetchedJobs.length > 0 || isInitial) {
+        const [companiesData, jobsData] = await Promise.allSettled([
+          apiRequest(`${API_BASE_URL}/api/companies`),
+          apiRequest(`${API_BASE_URL}/api/jobs`),
+        ]);
+
+        let fetchedCompanies: TrackedWebsite[] = [];
+        let fetchedJobs: JobAlert[] = [];
+
+        // Handle companies result
+        if (companiesData.status === "fulfilled") {
+          fetchedCompanies = (companiesData.value || []) as TrackedWebsite[];
+          setTrackedCompanies(fetchedCompanies);
+        } else {
+          console.error("Companies fetch failed:", companiesData.reason);
+          if (isInitial) {
+            throw new Error(
+              `Failed to load companies: ${companiesData.reason.message}`
+            );
+          }
+        }
+
+        // Handle jobs result
+        if (jobsData.status === "fulfilled") {
+          fetchedJobs = (jobsData.value || []) as JobAlert[];
           const mappedJobs = fetchedJobs.map(mapJobData);
+
           setJobs((prevJobs) => {
             if (!isInitial && mappedJobs.length === 0 && prevJobs.length > 0) {
               return prevJobs; // Keep existing if refresh failed
             }
-            // Merge new jobs, avoid duplicates
-            const existingUrls = new Set(prevJobs.map((j) => j.url));
-            const newJobs = mappedJobs.filter((j) => !existingUrls.has(j.url));
-            return isInitial ? mappedJobs : [...prevJobs, ...newJobs];
+            return mappedJobs;
           });
+        } else {
+          console.error("Jobs fetch failed:", jobsData.reason);
+          if (isInitial) {
+            throw new Error(`Failed to load jobs: ${jobsData.reason.message}`);
+          }
         }
 
-        console.info(
+        console.log(
           `✅ Loaded ${fetchedCompanies.length} companies and ${fetchedJobs.length} jobs`
         );
       } catch (e) {
         const error = e as Error;
         console.error("Failed to fetch data:", error);
-        if (!isInitial) {
+
+        // Handle authentication errors
+        if (
+          error.message.includes("Authentication") ||
+          error.message.includes("Session expired")
+        ) {
+          Alert.alert("Session Expired", "Please log in again.", [
+            { text: "OK", onPress: () => handleLogout() },
+          ]);
+          return;
+        }
+
+        if (isInitial) {
+          setError(error.message);
+        } else {
           // Don't show error for background refreshes, just log it
           console.log("Background refresh failed, keeping existing data");
-        } else {
-          setError(error.message);
         }
       } finally {
         setLoading(false);
+        fetchingRef.current = false;
       }
     },
-    [mapJobData]
+    [mapJobData, handleLogout]
   );
+
+  // const fetchingRef = useRef(false);
 
   // Effect for managing the refresh interval
   useEffect(() => {
+    let isMounted = true;
+
     const startInterval = () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
+
       refreshIntervalRef.current = setInterval(() => {
-        console.info("[Interval] Auto-refreshing data...");
-        fetchData();
-      }, 30000);
+        if (isMounted && !fetchingRef.current) {
+          console.log("[Interval] Auto-refreshing data...");
+          fetchData();
+        }
+      }, 30000); // 30 second interval
     };
 
     fetchData(true); // Initial fetch
     startInterval(); // Start the interval
 
     return () => {
+      isMounted = false;
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
       }
     };
-  }, [fetchData]);
+  }, [fetchData]); // Initial fetch
 
   const handleManualRefresh = async () => {
     try {
       setLoading(true);
-      const result = await apiRequest(`${API_BASE_URL}/companies/refresh`, {
+      const result = await apiRequest(`${API_BASE_URL}/api/companies/refresh`, {
         method: "POST",
       });
       Alert.alert("Refresh Complete", `Found ${result.newJobs} new jobs!`);
@@ -279,7 +404,7 @@ export default function DashboardScreen() {
     try {
       setAddingCompany(true);
       console.info("Adding company:", companyData);
-      const result = await apiRequest(`${API_BASE_URL}/companies`, {
+      const result = await apiRequest(`${API_BASE_URL}/api/companies`, {
         method: "POST",
         body: JSON.stringify(companyData),
       });
@@ -359,8 +484,12 @@ export default function DashboardScreen() {
 
   const handleDeleteJob = async (jobId: string) => {
     try {
-      await apiRequest(`${API_BASE_URL}/jobs/${jobId}`, { method: "DELETE" });
-      setJobs((prev) => prev.filter((job) => (job.id as string | number) !== jobId));
+      await apiRequest(`${API_BASE_URL}/api/jobs/${jobId}`, {
+        method: "DELETE",
+      });
+      setJobs((prev) =>
+        prev.filter((job) => (job.id as string | number) !== jobId)
+      );
       setShowJobModal(false);
       Alert.alert("Success", "Job removed successfully.");
     } catch (_e) {
@@ -379,14 +508,18 @@ export default function DashboardScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              await apiRequest(`${API_BASE_URL}/companies/${companyId}`, {
+              await apiRequest(`${API_BASE_URL}/api/companies/${companyId}`, {
                 method: "DELETE",
               });
               setTrackedCompanies((prev) =>
-                prev.filter((company) => (company.id as string | number) !== companyId)
+                prev.filter(
+                  (company) => (company.id as string | number) !== companyId
+                )
               );
               setJobs((prev) =>
-                prev.filter((job) => (job.companyId as string | number) !== companyId)
+                prev.filter(
+                  (job) => (job.companyId as string | number) !== companyId
+                )
               );
               Alert.alert("Success", "Company deleted successfully.");
             } catch (e) {
@@ -433,9 +566,17 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Job Tracker</Text>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 16 }}>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => router.push("/(app)/settings")}
+          >
+            <Text style={styles.settingsButtonText}>Settings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -495,7 +636,15 @@ export default function DashboardScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Activity</Text>
               <TouchableOpacity
-                onPress={() => router.push("/(app)/RecentActivity")}
+                onPress={() => {
+                  try {
+                    router.push("/(app)/recent");
+                  } catch (error) {
+                    console.error("Navigation error:", error);
+                    // Fallback navigation
+                    router.replace("/(app)/RecentActivity");
+                  }
+                }}
               >
                 <Text style={styles.seeAllButton}>See All</Text>
               </TouchableOpacity>
@@ -526,7 +675,7 @@ export default function DashboardScreen() {
                         )}
                       </View>
                       <Text style={styles.jobCompany}>
- {getCompanyDisplayName(job)}
+                        {getCompanyDisplayName(job)}
                       </Text>
                       <View style={styles.jobInfoContainer}>
                         <Text style={styles.jobInfo}>
@@ -582,7 +731,7 @@ export default function DashboardScreen() {
                     style={styles.companyDeleteButton}
                     onPress={(e) => {
                       e.stopPropagation();
-                      handleDeleteCompany((company.id as unknown as string));
+                      handleDeleteCompany(company.id as unknown as string);
                     }}
                   >
                     <Text style={styles.companyDeleteButtonText}>Delete</Text>
@@ -598,11 +747,11 @@ export default function DashboardScreen() {
         visible={showAddCompanyModal}
         onClose={() => {
           setShowAddCompanyModal(false);
-        setEditingCompanyState(undefined); // Clear editing state
+          setEditingCompanyState(undefined); // Clear editing state
           setIsEditing(false);
         }}
         onAddCompany={handleAddCompany}
-      editingCompany={editingCompanyState} // Pass the correctly typed state
+        editingCompany={editingCompanyState} // Pass the correctly typed state
         isEditing={isEditing}
       />
       <CompanyListModal
@@ -644,7 +793,7 @@ export default function DashboardScreen() {
                 {selectedJob.title}
               </Text>
               <TouchableOpacity onPress={() => setShowJobModal(false)}>
- <Text style={styles.modalCloseButton}>Close</Text>
+                <Text style={styles.modalCloseButton}>Close</Text>
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.modalContent}>
@@ -723,7 +872,9 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteButton}
-                  onPress={() => handleDeleteJob((selectedJob.id as unknown as string))}
+                  onPress={() =>
+                    handleDeleteJob(selectedJob.id as unknown as string)
+                  }
                 >
                   <Text style={styles.deleteButtonText}>🗑️ Delete Job</Text>
                 </TouchableOpacity>
@@ -794,7 +945,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 6,
   },
+  settingsButton: {
+    backgroundColor: "#3B82F6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
   logoutButtonText: { color: "white", fontSize: 14, fontWeight: "600" },
+  settingsButtonText: { color: "white", fontSize: 14, fontWeight: "600" },
   mainScrollView: { flex: 1 },
   content: { paddingHorizontal: 24, paddingTop: 32 },
   statsContainer: {

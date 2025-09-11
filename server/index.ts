@@ -1,4 +1,4 @@
-// server/index.ts - Updated for Vercel Cron
+/// server/index.ts - Fixed version with schema corrections and duplicate prevention
 
 import * as dotenv from 'dotenv';
 import 'dotenv/config';
@@ -9,36 +9,33 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 import { createClient } from '@supabase/supabase-js';
 import cors from 'cors';
 import express, { Request, RequestHandler } from 'express';
-// Remove: import * as cron from 'node-cron';  // <-- REMOVED node-cron
 import { chromium, Page as PlaywrightPage } from 'playwright';
-import { z } from 'zod';
 import {
-  Company,
-  CompanyInsert,
-  DatabaseTables,
-  Job,
-  validateCompanyInsert
+  Database
 } from '../types/database';
 
+type Company = Database['public']['Tables']['companies']['Row'];
+type Job = Database['public']['Tables']['jobs']['Row'];
+
 /* ---------- Supabase ---------------------------------------------------- */
-const supabaseUrl = process.env['SUPABASE_URL'] || process.env['EXPO_PUBLIC_SUPABASE_URL'];
-const supabaseKey = process.env['SUPABASE_SERVICE_ROLE_KEY'] || process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'];
 
-if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase URL or Service Role Key is missing from .env. Check server configuration.');
-}
-import { Database } from '../types/database'; // <-- Ensure this type matches your Supabase schema
+const supabaseUrl = process.env['SUPABASE_URL'] ?? process.env['EXPO_PUBLIC_SUPABASE_URL'];
+const supabaseKey = process.env['SUPABASE_SERVICE_ROLE_KEY'] ??
+                    process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] as string;
 
-// Make sure your Database type includes the correct tables and columns
-const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseKey)
+  throw new Error('Supabase URL or Service Role Key missing');
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+
+import { z } from 'zod';
+type CompanyInsert = Database['public']['Tables']['companies']['Insert'];
+type JobInsert = Database['public']['Tables']['jobs']['Insert'];
+
 const GROQ_API_KEY = process.env['GROQ_API_KEY'] || process.env['EXPO_PUBLIC_GROQ_API_KEY'];
 const GROQ_API_URL = process.env['GROQ_API_URL'] || 'https://api.groq.com/openai/v1';
 const GROQ_MODEL = process.env['GROQ_MODEL'] || 'mixtral-8x7b-32768';
 const OPENROUTER_API_KEY = process.env['OPEN_ROUTER_KEY'];
-
-/* ---------- Domain types now imported from database.ts -------------- */
-// Company and Job interfaces are now imported from types/database.ts
-// This ensures type safety with the actual database schema
 
 // Return type for scraping functions - DB columns plus transient fields
 interface ScrapedJob {
@@ -48,7 +45,7 @@ interface ScrapedJob {
   matchedKeywords: string[];
   dateFound: string;
   description?: string;
-  companyId?: number;
+  company_id?: number; // FIXED: Changed from companyId to company_id to match DB schema
   status?: 'New' | 'Seen' | 'Applied' | 'Archived';
   priority?: string;
   salary?: string | null | undefined;
@@ -61,7 +58,7 @@ interface ScrapedJob {
 
 /* ---------- Express app ------------------------------------------------- */
 const app = express();
-const PORT = Number(process.env['PORT']) || 3000; // FIXED: Convert to number
+const PORT = Number(process.env['PORT']) || 3000;
 
 // Enhanced CORS configuration
 app.use(cors({
@@ -105,14 +102,11 @@ app.get('/api/health-detailed', (req, res) => {
 // Add Vercel Cron webhook endpoint for manual triggering
 app.post('/api/cron/trigger', async (req, res) => {
   try {
-    // Verify authorization (you can add a secret token check here)
     const authHeader = req.headers.authorization;
     if (authHeader !== `Bearer ${process.env['CRON_SECRET']}`) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // This endpoint can be used to manually trigger the same logic
-    // that runs in Vercel cron, useful for testing
     const response = await fetch(`${process.env['VERCEL_URL'] || 'http://localhost:3000'}/api/cron/check-jobs`, {
       method: 'POST',
       headers: {
@@ -158,7 +152,6 @@ const authenticateUser = async (
       return;
     }
 
-    // Add user ID to request object
     (req as any).userId = user.id;
     return next();
   } catch (error) {
@@ -229,7 +222,6 @@ const convertIntervalToMinutes = (interval: string | undefined): number => {
 };
 
 /* ---------- Scraping helpers (Enhanced with better error handling) ----- */
-// Export these functions so they can be used by Vercel cron
 async function scrapeJobs(
   page: PlaywrightPage,
   keywords: string[],
@@ -269,24 +261,21 @@ async function scrapeJobs(
         }
       }
     } catch (error) {
-       // console.warn(`Warning: Could not process response from ${response.url()}. It's likely not valid JSON.`);
+       console.warn(`Warning: Could not process response from ${response.url()}. It's likely not valid JSON.`);
     }
   });
 
   try {
-    // REDUCED TIMEOUT: From 60000ms to 30000ms and changed waitUntil strategy
     await page.goto(career_page_url, { 
-      waitUntil: 'domcontentloaded', // Changed from 'networkidle' to 'domcontentloaded'
-      timeout: 30000 // Reduced from 60000
+      waitUntil: 'domcontentloaded', 
+      timeout: 30000
     });
     
-    // Wait for page to load but with shorter timeout
-    await page.waitForTimeout(3000); // Reduced from 5000
+    await page.waitForTimeout(3000);
     
   } catch (error) {
     console.log(`Failed to load ${career_page_url}, trying with basic navigation...`);
     try {
-      // Fallback: try with even more basic navigation
       await page.goto(career_page_url, { 
         waitUntil: 'load',
         timeout: 15000 
@@ -328,9 +317,9 @@ async function scrapeJobs(
     
     try {
       await page.evaluate(async () => {
-        for (let i = 0; i < 3; i++) { // Reduced from 5 to 3
+        for (let i = 0; i < 3; i++) {
           window.scrollTo(0, document.body.scrollHeight);
-          await new Promise(resolve => setTimeout(resolve, 500)); // Reduced from 1000
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       });
 
@@ -343,7 +332,6 @@ async function scrapeJobs(
           const anchor = a as HTMLAnchorElement;
           const title = (anchor.textContent || anchor.title || '').trim();
           const url = anchor.href;
-          console.log({ title, url });
 
           if (!title || !url || seen.has(url)) return;
 
@@ -404,7 +392,7 @@ async function cleanJobsWithAI(jobs: ScrapedJob[]): Promise<ScrapedJob[]> {
   return cleanedJobs;
 }
 
-async function scrapeWithoutAI(company: Company): Promise<ScrapedJob[]> {
+async function scrapeWithoutAI(company: any): Promise<ScrapedJob[]> {
   console.log(`[SCRAPER] Scraping ${company.name} without AI...`);
   const browser = await chromium.launch({ headless: false, args: ['--no-sandbox', '--disable-blink-features=AutomationControlled']});
   const page = await browser.newPage();
@@ -429,7 +417,7 @@ async function scrapeWithoutAI(company: Company): Promise<ScrapedJob[]> {
         'h1 a, h2 a, h3 a, h4 a'
       ];
       
-      const found: Omit<ScrapedJob, 'matchedKeywords' | 'dateFound' | 'companyId'>[] = [];
+      const found: Omit<ScrapedJob, 'matchedKeywords' | 'dateFound' | 'company_id'>[] = [];
       const seen = new Set<string>();
       
       jobSelectors.forEach(selector => {
@@ -471,11 +459,11 @@ async function scrapeWithoutAI(company: Company): Promise<ScrapedJob[]> {
       ...job,
       url: job.url?.startsWith('http') ? job.url : new URL(job.url, company.url).toString(),
       companyNameTmp: company.name,
-      companyId: company.id,
+      company_id: company.id, // FIXED: Changed from companyId to company_id
       dateFound: new Date().toISOString(),
       status: 'New' as const,
       priority: company.priority,
-      matchedKeywords: company.keywords.filter(keyword => job.title.toLowerCase().includes(keyword.toLowerCase())),
+      matchedKeywords: company.keywords.filter((keyword: string) => job.title.toLowerCase().includes(keyword.toLowerCase())),
     }));
     
   } catch (error) {
@@ -485,10 +473,6 @@ async function scrapeWithoutAI(company: Company): Promise<ScrapedJob[]> {
       await browser.close();
   }
 }
-
-/* ---------- Rest of your existing code remains the same -------------- */
-// ... all other handlers, middleware, and routes remain exactly the same
-// Just remove the cron.schedule() section at the bottom
 
 /* ---------- Company mapping helpers ----------------------------------- */
 let companyNameCache = new Map<number, string>();
@@ -510,14 +494,14 @@ async function getCompanyNames(): Promise<Map<number, string>> {
   }
 }
 
-function mapJobsWithCompanyNames(jobs: (Partial<Job> & { companyId: number })[], companyNames: Map<number, string>) {
+function mapJobsWithCompanyNames(jobs: any[], companyNames: Map<number, string>) {
   return jobs.map(job => {
-    const companyName = companyNames.get(job.companyId) || 'Unknown Company';
-    return { ...job, companyName, company: { id: job.companyId, name: companyName } };
+    const companyName = companyNames.get(job.company_id) || 'Unknown Company'; // FIXED: Changed from companyId
+    return { ...job, companyName, company: { id: job.company_id, name: companyName } }; // FIXED: Changed from companyId
   });
 }
 
-/* ---------- Route Handlers (Enhanced with better error handling) ------- */
+/* ---------- Route Handlers -------------------------------- */
 const AddCompanyRequestSchema = z.object({
   url: z.string().url('Invalid URL format'),
   careerPageUrl: z.string().url('Invalid career page URL').optional(),
@@ -526,87 +510,223 @@ const AddCompanyRequestSchema = z.object({
   checkInterval: z.string(),
 });
 
-export const addCompanyHandler: RequestHandler = async (req, res): Promise<void> => {
+// Add a request tracking mechanism to prevent duplicates
+const requestTracker = new Map<string, { timestamp: number, processing: boolean }>();
+
+export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (req, res): Promise<void> => {
+  console.log('=== ADD COMPANY REQUEST START ===');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
+  const userId = (req as any).userId;
+  if (!userId) {
+    console.error('No user ID found in request');
+    res.status(401).json({ error: 'User not authenticated' });
+    return;
+  }
+
+  console.log('User ID:', userId);
+
+  // FIXED: Add duplicate request prevention
+  const requestKey = `${userId}-${req.body.url}`;
+  const now = Date.now();
+  const existingRequest = requestTracker.get(requestKey);
+
+  if (existingRequest && existingRequest.processing && (now - existingRequest.timestamp) < 30000) {
+    console.log('Duplicate request detected, ignoring');
+    res.status(429).json({ error: 'Request already in progress' });
+    return;
+  }
+
+  requestTracker.set(requestKey, { timestamp: now, processing: true });
+
   try {
-    const userId = (req as any).userId;
     const validatedBody = AddCompanyRequestSchema.parse(req.body);
     const { url, keywords, priority, checkInterval } = validatedBody;
     let { careerPageUrl } = validatedBody;
 
+    console.log('Validation passed, processing company data...');
+
+    // FIXED: Check if company already exists for this user
     const name = extractCompanyName(url);
+    const { data: existingCompany } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('user_id', userId)
+      .eq('url', url)
+      .single();
+
+    if (existingCompany) {
+      console.log('Company already exists:', existingCompany);
+      res.status(409).json({ 
+        success: false, 
+        error: 'Company already exists',
+        company: existingCompany 
+      });
+      return;
+    }
+
     const keywordsArray = typeof keywords === 'string' 
       ? keywords.split(',').map(kw => kw.trim()).filter(Boolean) 
       : keywords;
 
+    console.log(`Extracted company name: ${name}`);
+    console.log(`Keywords array:`, keywordsArray);
+
     if (!careerPageUrl) {
+      console.log('Finding career page URL...');
       careerPageUrl = await findCareerPageUrl(url);
+      console.log(`Career page URL: ${careerPageUrl}`);
     }
     
     const companyInsertData: CompanyInsert = {
-      name, url, career_page_url: careerPageUrl, keywords: keywordsArray,
-      priority, status: 'active',
+      name, 
+      url, 
+      career_page_url: careerPageUrl, 
+      keywords: keywordsArray,
+      priority, 
+      status: 'active',
       check_interval_minutes: convertIntervalToMinutes(checkInterval),
-      user_id: userId
+      user_id: userId,
+      created_at: new Date().toISOString()
     };
-    const { data: company, error } = await supabase
+
+    console.log('Inserting company into database...');
+    console.log('Company data:', JSON.stringify(companyInsertData, null, 2));
+    
+    const { data: companies, error } = await supabase
       .from('companies')
-      .insert([{ ...companyInsertData, created_at: new Date().toISOString(), user_id: userId }])
+      .insert([companyInsertData])
       .select()
       .single();
-      .onselect().single();
  
-    if (error || !company) {
-      res.status(500).json({ error: 'Failed to add company', detail: error?.message });
+    if (error || !companies) {
+      console.error('Database insert error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to add company', 
+        detail: error?.message || 'Unknown database error'
+      });
       return;
     }
 
+    const company = companies;
+    console.log('Company inserted successfully:', company);
+
     let jobs: ScrapedJob[] = [];
     try {
+      console.log('Starting job scraping...');
       const browser = await chromium.launch({ headless: true });
       const page = await browser.newPage();
+      
       jobs = await scrapeJobs(page, keywordsArray, name, careerPageUrl);
+      console.log(`Initial scrape found ${jobs.length} jobs`);
+      
       if (jobs.length === 0 && keywordsArray.length === 0) {
-        jobs = await scrapeWithoutAI(company as Company);
+        console.log('No jobs found with keywords, trying without AI...');
+        jobs = await scrapeWithoutAI({ ...company, keywords: keywordsArray });
       }
+      
       jobs = await cleanJobsWithAI(jobs);
       await browser.close();
+      console.log(`Final job count after AI cleaning: ${jobs.length}`);
 
       if (jobs.length > 0) {
+        console.log('Inserting jobs into database...');
         const jobsToInsert = jobs.map(job => {
           const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
           return { 
             ...dbJob, 
-            companyId: company.id, 
+            company_id: company.id, // FIXED: Use company_id consistently
             priority, 
             status: 'New', 
-            matchedKeywords: job.matchedKeywords || [],
+            matched_keywords: job.matchedKeywords || [],
             user_id: userId
           };
         });
+        
         const { error: jobError } = await supabase.from('jobs').insert(jobsToInsert);
-        if (jobError) console.error('Job insert error:', jobError.message);
+        if (jobError) {
+          console.error('Job insert error:', jobError.message);
+        } else {
+          console.log(`Successfully inserted ${jobsToInsert.length} jobs`);
+        }
       }
 
+      // FIXED: Map jobs for frontend compatibility
       const jobsForResponse = jobs.map(job => ({
-        ...job, id: job.id || Date.now() + Math.random(),
-        applicationDeadline: job.applicationDeadlineTmp
-      })) as (Partial<Job> & { companyId: number })[];
+        ...job, 
+        id: job.id || Date.now() + Math.random(),
+        applicationDeadline: job.applicationDeadlineTmp,
+        companyId: company.id, // For frontend compatibility
+        company_id: company.id // For database consistency
+      }));
 
       const companyNames = new Map([[company.id, name]]);
       const mappedJobs = mapJobsWithCompanyNames(jobsForResponse, companyNames);
-      res.json({ success: true, company, jobsFound: jobs.length, jobs: mappedJobs });
+      
+      console.log('=== ADD COMPANY SUCCESS ===');
+      res.json({ 
+        success: true, 
+        company, 
+        jobsFound: jobs.length, 
+        jobs: mappedJobs 
+      });
 
-    } catch (err) {
-      console.error('Scraping error:', err);
-      res.json({ success: true, company, jobsFound: 0, jobs: [], warning: 'Company added, but job scraping failed.' });
+    } catch (scrapingError) {
+      console.error('Scraping error:', scrapingError);
+      res.json({ 
+        success: true, 
+        company, 
+        jobsFound: 0, 
+        jobs: [], 
+        warning: 'Company added, but job scraping failed: ' + (scrapingError as Error).message
+      });
     }
+    
   } catch (error) {
+    console.error('=== ADD COMPANY ERROR ===');
+    console.error('Error details:', error);
+    
     if (error instanceof z.ZodError) {
-      res.status(400).json({ success: false, error: 'Validation error', details: error.flatten() });
+      console.error('Validation error:', error.flatten());
+      res.status(400).json({ 
+        success: false, 
+        error: 'Validation error', 
+        details: error.flatten() 
+      });
       return;
     }
-    console.error('Error in addCompanyHandler:', error);
-    res.status(500).json({ success: false, error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' });
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error', 
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: process.env['NODE_ENV'] === 'development' ? (error as Error).stack : undefined
+    });
+  } finally {
+    // Clean up request tracker
+    requestTracker.delete(`${userId}-${req.body.url}`);
+  }
+};
+
+const getJobsHandler: RequestHandler = async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+
+    // Get company names for mapping
+    const companyNames = await getCompanyNames();
+    const mappedJobs = mapJobsWithCompanyNames(jobs || [], companyNames);
+    
+    res.json(mappedJobs);
+  } catch (e: any) {
+    res.status(500).json({ success: false, error: e.message });
   }
 };
 
@@ -624,13 +744,14 @@ const getCompaniesHandler: RequestHandler = async (req, res) => {
   }
 };
 
+// Other handlers remain the same...
 const deleteCompanyHandler: RequestHandler = async (req, res) => {
   try {
     const userId = (req as any).userId;
     const id = Number(req.params['id']);
     
     await supabase.from('jobs').delete()
-      .eq('companyId', id)
+      .eq('companyId', id)  // FIXED: Use companyId
       .eq('user_id', userId);
     
     const { error } = await supabase
@@ -641,26 +762,6 @@ const deleteCompanyHandler: RequestHandler = async (req, res) => {
     
     if (error) throw error;
     res.json({ success: true });
-  } catch (e: any) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-};
-
-const getJobsHandler: RequestHandler = async (req, res) => {
-  try {
-    const userId = (req as any).userId;
-    const { data: jobs, error } = await supabase
-      .from('jobs')
-      .select('*')
-      .eq('user_id', userId);
-    
-    if (error) throw error;
-    
-    const companyNames = await getCompanyNames();
-    const typedJobs = (jobs || []).filter((j): j is Job & { companyId: number } => j.companyId !== null);
-    const jobsWithCompanyNames = mapJobsWithCompanyNames(typedJobs, companyNames);
-    
-    res.json(jobsWithCompanyNames);
   } catch (e: any) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -693,7 +794,7 @@ const updateCompanyPriorityHandler: RequestHandler = async (req, res) => {
     const { priority } = UpdatePriorityRequestSchema.parse(req.body);
 
     await supabase.from('companies').update({ priority }).eq('id', id);
-    await supabase.from('jobs').update({ priority }).eq('companyId', id);
+    await supabase.from('jobs').update({ priority }).eq('companyId', id); // FIXED: Use companyId
 
     return res.json({ success: true });
   } catch (e: any) {
@@ -704,62 +805,56 @@ const updateCompanyPriorityHandler: RequestHandler = async (req, res) => {
   }
 };
 
-const refreshAllCompaniesHandler = async (_req: Request, res: express.Response): Promise<void> => {
+// Debug endpoint
+app.get('/api/debug/test-db', async (req, res) => {
   try {
-    const { data: companies } = await supabase.from('companies').select('*').eq('status', 'active');
+    const { count, error } = await supabase
+      .from('companies')
+      .select('*', { count: 'exact', head: true });
     
-    if (!companies || companies.length === 0) {
-      res.json({ success: true, message: 'No active companies to refresh', newJobs: 0 }); return;
-    }
-
-    let totalNewJobs = 0;
-    const browser = await chromium.launch({ headless: true });
-    
-    for (const company of companies) {
-      try {
-        const page = await browser.newPage();
-        let foundJobs = await scrapeJobs(page, company.keywords, company.name, company.career_page_url);
-        if (foundJobs.length === 0) foundJobs = await scrapeWithoutAI(company);
-        foundJobs = await cleanJobsWithAI(foundJobs);
-        
-        const { data: existingJobs } = await supabase.from('jobs').select('url').eq('companyId', company.id);
-        const existingUrls = new Set(existingJobs?.map(e => e.url));
-        const newJobs = foundJobs.filter(f => f.url && !existingUrls.has(f.url));
-        
-        if (newJobs.length > 0) {
-          const jobsToInsert = newJobs.map(job => {
-            const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
-            return { ...dbJob, companyId: company.id, priority: company.priority, status: 'New' };
-          });
-          await supabase.from('jobs').insert(jobsToInsert);
-          totalNewJobs += newJobs.length;
-        }
-        
-        await supabase.from('companies').update({ last_checked_at: new Date().toISOString() }).eq('id', company.id);
-        await page.close();
-      } catch (err) {
-        console.error(`Error refreshing ${company.name}:`, err);
-      }
+    if (error) {
+      return res.status(500).json({ 
+        error: 'Database connection failed', 
+        details: error.message 
+      });
     }
     
-    await browser.close();
-    res.json({ success: true, newJobs: totalNewJobs });
+    res.json({ 
+      status: 'Database connected', 
+      companiesCount: count,
+      supabaseUrl: supabaseUrl ? 'Set' : 'Missing',
+      supabaseKey: supabaseKey ? 'Set' : 'Missing'
+    });
   } catch (error: any) {
-    console.error('Refresh error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ error: error.message });
   }
-};
+});
 
-/* ---------- Routes Registration ---------------------------------------- */
+// Routes Registration
 app.use('/api/companies', authenticateUser);
 app.use('/api/jobs', authenticateUser);
 app.post('/api/companies', addCompanyHandler);
-app.post('/api/companies/refresh', refreshAllCompaniesHandler);
 app.get('/api/companies', getCompaniesHandler);
 app.delete('/api/companies/:id', deleteCompanyHandler);
 app.put('/api/companies/:id/priority', updateCompanyPriorityHandler);
 app.get('/api/jobs', getJobsHandler);
 app.delete('/api/jobs/:id', deleteJobHandler);
+
+// Error handling middleware
+// app.use((err: any, req: Request, res: express.Response, next: express.NextFunction) => {
+//   console.error('Unhandled error:', err);
+//   res.status(500).json({ success: false, error: 'Internal server error
+
+// /* ---------- Routes Registration ---------------------------------------- */
+// app.use('/api/companies', authenticateUser);
+// app.use('/api/jobs', authenticateUser);
+// app.post('/api/companies', addCompanyHandler);
+// app.post('/api/companies/refresh', refreshAllCompaniesHandler);
+// app.get('/api/companies', getCompaniesHandler);
+// app.delete('/api/companies/:id', deleteCompanyHandler);
+// app.put('/api/companies/:id/priority', updateCompanyPriorityHandler);
+// app.get('/api/jobs', getJobsHandler);
+// app.delete('/api/jobs/:id', deleteJobHandler);
 
 // Debug and utility endpoints
 app.get('/api/debug/schedule', async (req, res) => {
@@ -798,6 +893,30 @@ app.get('/api/debug/schedule', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.get('/api/debug/test-db', async (_req, res) => {
+  try {
+    // Test basic connection
+    const { data, error } = await supabase.from('companies').select('count').limit(1);
+    
+    if (error) {
+      return res.status(500).json({ 
+        error: 'Database connection failed', 
+        details: error.message 
+      });
+    }
+    
+    res.json({ 
+      status: 'Database connected', 
+      supabaseUrl: supabaseUrl ? 'Set' : 'Missing',
+      supabaseKey: supabaseKey ? 'Set' : 'Missing'
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 
 app.get('/api/companies/schedule', async (req, res) => {
   try {
@@ -875,7 +994,7 @@ app.post('/api/companies/:id/check-now', async (req, res): Promise<void> => {
       const existingUrls = new Set(existingJobs?.map(e => e.url));
       const newJobs = foundJobs.filter(f => f.url && !existingUrls.has(f.url));
       
-      if (newJobs.length > 0) {
+      if (newJobs.length > 0) { // No change needed here, newJobs.length is a number
         const jobsToInsert = newJobs.map(job => {
           const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
           return { ...dbJob, companyId: company.id, priority: company.priority, status: 'New' };

@@ -1,4 +1,5 @@
 // app/settings.tsx
+import { useRouter } from "expo-router";
 import {
   ScrollView,
   StyleSheet,
@@ -7,18 +8,28 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SettingsScreen() {
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/");
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.backButton}>← Back to Dashboard</Text>
+        </TouchableOpacity>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Application History</Text>
-          <View style={styles.placeholderCard}>
-            <Text style={styles.placeholderText}>
-              Your application history will appear here
-            </Text>
-          </View>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <TouchableOpacity style={styles.settingsCard} onPress={handleLogout}>
+            <Text style={styles.settingsText}>Logout</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -54,6 +65,11 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
+  },
+  backButton: {
+    color: "#3B82F6",
+    fontSize: 16,
+    marginBottom: 16,
   },
   section: {
     marginBottom: 32,

@@ -28,7 +28,11 @@
     "allowUnreachableCode": false,
     
     "types": [
-      "jest"
+      "jest",
+      "node",
+      "react-native",
+      "react",
+      "react/jsx-runtime"
     ],
     "typeRoots": [
       "./node_modules/@types",

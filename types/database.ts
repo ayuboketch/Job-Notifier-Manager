@@ -1,149 +1,309 @@
-// types/database.ts
-import { z } from 'zod';
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-// Database column mapping - these represent the actual database columns
-export const CompanySchema = z.object({
-  id: z.number(),
-  name: z.string(),
-  url: z.string().url(),
-  career_page_url: z.string().url(),
-  keywords: z.array(z.string()),
-  priority: z.enum(['high', 'medium', 'low']),
-  check_interval_minutes: z.number().positive(),
-  status: z.enum(['active', 'inactive']).default('active'),
-  created_at: z.string().datetime(),
-  last_checked_at: z.string().datetime().optional(),
-   user_id: z.string(),
-});
-
-export const JobSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  url: z.string().url(),
-  matchedKeywords: z.array(z.string()),
-  dateFound: z.string().datetime(),
-  description: z.string().optional(),
-  companyId: z.number(),
-  status: z.enum(['New', 'Seen', 'Applied', 'Archived']).default('New'),
-  priority: z.enum(['high', 'medium', 'low']),
-  salary: z.string().nullable().optional(),
-  requirements: z.array(z.string()).nullable().optional(),
-  applicationDeadline: z.string().nullable().optional(),
-  company: z.any().optional(),
-});
-
-// Create input schemas for database operations (omit auto-generated fields)
-export const CompanyInsertSchema = CompanySchema.omit({ 
-  id: true, 
-  created_at: true,
-  last_checked_at: true,
-  user_id: true, 
-});
-export type CompanyInsert = {
-  name: string;
-  url: string;
-  career_page_url: string;
-  keywords: string[];
-  priority: 'high' | 'medium' | 'low';
-  status: 'active' | 'inactive'; 
-  check_interval_minutes: number;
-  user_id: string; 
-};
-
-export const JobInsertSchema = JobSchema.omit({ 
-  id: true 
-});
-
-export const CompanyUpdateSchema = CompanyInsertSchema.partial();
-export const JobUpdateSchema = JobInsertSchema.partial();
-
-// Infer TypeScript types from Zod schemas
-export type Company = z.infer<typeof CompanySchema>;
-export type Job = z.infer<typeof JobSchema>;
-export type JobInsert = z.infer<typeof JobInsertSchema>;
-export type CompanyUpdate = z.infer<typeof CompanyUpdateSchema>;
-export type JobUpdate = z.infer<typeof JobUpdateSchema>;
-
-// Additional types for API responses with relationships
-export const JobWithCompanySchema = JobSchema.extend({
-  company: z.object({
-    id: z.number(),
-    name: z.string(),
-  }),
-  companyName: z.string(),
-});
-
-export type JobWithCompany = z.infer<typeof JobWithCompanySchema>;
-
-// Validation functions
-export function validateCompany(data: unknown): Company {
-  return CompanySchema.parse(data);
-}
-
-export function validateJob(data: unknown): Job {
-  return JobSchema.parse(data);
-}
-
-export function validateCompanyInsert(data: unknown, userId: string): CompanyInsert {
-  const parsed = CompanyInsertSchema.parse(data);
-  return { ...parsed, user_id: userId };
-}
-export function validateJobInsert(data: unknown): JobInsert {
-  return JobInsertSchema.parse(data);
-}
-
-// Database constraint types for additional type safety
-export type DatabaseTables = {
-  companies: {
-    Row: Company;
-    Insert: CompanyInsert;
-    Update: CompanyUpdate;
-  };
-  jobs: {
-    Row: Job;
-    Insert: JobInsert;
-    Update: JobUpdate;
-  };
-};
 export type Database = {
-  // ...other tables
-  companies: {
-    Row: {
-      id: number;
-      created_at: string;
-      user_id: string;
-      name: string;
-      url: string;
-      career_page_url: string;
-      keywords: string[];
-      priority: 'high' | 'medium' | 'low';
-      status: 'active' | 'inactive';
-      check_interval_minutes: number;
-      last_checked_at?: string | null;
-    };
-    Insert: {
-      created_at?: string;
-      user_id: string;
-      name: string;
-      url: string;
-      career_page_url: string;
-      keywords: string[];
-      priority: 'high' | 'medium' | 'low';
-      status: 'active' | 'inactive';
-      check_interval_minutes: number;
-      last_checked_at?: string | null;
-    };
-    Update: Partial<{
-      created_at: string;
-      user_id: string;
-      name: string;
-      url: string;
-      career_page_url: string;
-      keywords: string[];
-      priority: 'high' | 'medium' | 'low';
-      status: 'active' | 'inactive';
-      check_interval_minutes: number;
-      last_checked_at?: string | null;
-    }>;
-  };
-};
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
+  public: {
+    Tables: {
+      companies: {
+        Row: {
+          career_page_url: string | null
+          careerpageurl: string | null
+          check_interval: number | null
+          check_interval_minutes: number | null
+          created_at: string | null
+          id: number
+          keywords: string[] | null
+          last_checked: string | null
+          last_checked_at: string | null
+          name: string
+          priority: string | null
+          status: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          career_page_url?: string | null
+          careerpageurl?: string | null
+          check_interval?: number | null
+          check_interval_minutes?: number | null
+          created_at?: string | null
+          id?: number
+          keywords?: string[] | null
+          last_checked?: string | null
+          last_checked_at?: string | null
+          name: string
+          priority?: string | null
+          status?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          career_page_url?: string | null
+          careerpageurl?: string | null
+          check_interval?: number | null
+          check_interval_minutes?: number | null
+          created_at?: string | null
+          id?: number
+          keywords?: string[] | null
+          last_checked?: string | null
+          last_checked_at?: string | null
+          name?: string
+          priority?: string | null
+          status?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          application_deadline: string | null
+          companyId: number | null
+          created_at: string | null
+          dateFound: string | null
+          description: string | null
+          duties: string[] | null
+          id: number
+          matchedKeywords: string[] | null
+          priority: string | null
+          requirements: string[] | null
+          salary: string | null
+          status: string | null
+          title: string
+          url: string
+          user_id: string | null
+        }
+        Insert: {
+          application_deadline?: string | null
+          companyId?: number | null
+          created_at?: string | null
+          dateFound?: string | null
+          description?: string | null
+          duties?: string[] | null
+          id?: number
+          matchedKeywords?: string[] | null
+          priority?: string | null
+          requirements?: string[] | null
+          salary?: string | null
+          status?: string | null
+          title: string
+          url: string
+          user_id?: string | null
+        }
+        Update: {
+          application_deadline?: string | null
+          companyId?: number | null
+          created_at?: string | null
+          dateFound?: string | null
+          description?: string | null
+          duties?: string[] | null
+          id?: number
+          matchedKeywords?: string[] | null
+          priority?: string | null
+          requirements?: string[] | null
+          salary?: string | null
+          status?: string | null
+          title?: string
+          url?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_company_id_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          has_completed_onboarding: boolean | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          has_completed_onboarding?: boolean | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          has_completed_onboarding?: boolean | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

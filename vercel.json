@@ -1,14 +1,6 @@
-
 {
   "functions": {
-    "server/index.ts": {
-      "runtime": "nodejs18.x"
-    }
+    "api/cron/check-jobs.ts": { "maxDuration": 60 }
   },
-  "crons": [
-    {
-      "path": "/api/cron/check-jobs",
-      "schedule": "0 */2 * * *"
-    }
-  ]
+  "crons": [{ "path": "/api/cron/check-jobs", "schedule": "*/30 * * * *" }]
 }

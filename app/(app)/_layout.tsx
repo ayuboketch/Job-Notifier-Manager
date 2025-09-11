@@ -27,12 +27,25 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
+        name="recent"
+        options={{
+          title: "Recent Activity",
+          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
+            <Ionicons name="time-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      {/* Keep RecentActivity as a tab but hide it from tab bar */}
+      <Tabs.Screen
+        name="RecentActivity"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color, size }: { color: string; size: number }) => (
-            <Ionicons name="settings-outline" size={size} color={color} />
-          ),
+          href: null, 
         }}
       />
     </Tabs>

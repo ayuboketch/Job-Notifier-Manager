@@ -26,7 +26,7 @@ export default function RecentActivity() {
     const fetchJobs = async () => {
       try {
         const fetchedJobs = await apiWithAuth.getJobs();
-        setJobs(fetchedJobs);
+        setJobs(Array.isArray(fetchedJobs) ? fetchedJobs : []);
       } catch (_err) {
         setError("Failed to fetch jobs.");
       } finally {

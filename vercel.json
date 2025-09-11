@@ -1,4 +1,7 @@
 {
+  "version": 2,
+  "builds": [{ "src": "index.ts", "use": "@vercel/node" }],
+  "routes": [{ "src": "/(.*)", "dest": "/index.ts" }],
   "functions": {
     "api/cron/check-jobs.ts": { "maxDuration": 60 }
   },

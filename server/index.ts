@@ -45,7 +45,7 @@ interface ScrapedJob {
   matchedKeywords: string[];
   dateFound: string;
   description?: string;
-  company_id?: number; // FIXED: Changed from companyId to company_id to match DB schema
+  companyId?: number; // FIXED: Changed from companyId to company_id to match DB schema
   status?: 'New' | 'Seen' | 'Applied' | 'Archived';
   priority?: string;
   salary?: string | null | undefined;
@@ -171,7 +171,11 @@ const findCareerPageUrl = async (baseUrl: string): Promise<string> => {
     const testUrl = `${baseUrl}${path}`;
     let browser;
     try {
-      browser = await chromium.launch({ headless: true });
+      // browser = await chromium.launch({ headless: true });
+      const browser = await chromium.launch({ 
+        headless: true,
+        args: ['--no-sandbox', '--disable-web-security', '--disable-dev-shm-usage']
+      });
       const page = await browser.newPage();
       const response = await page.goto(testUrl, { waitUntil: 'domcontentloaded', timeout: 10000 });
       
@@ -267,11 +271,16 @@ async function scrapeJobs(
 
   try {
     await page.goto(career_page_url, { 
-      waitUntil: 'domcontentloaded', 
+      waitUntil: 'networkidle', 
       timeout: 30000
     });
     
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000);
+    try {
+        await page.waitForSelector('a[href*="job"], .job-title, [data-job]', { timeout: 10000 });
+      } catch (e) {
+        console.log('No job selectors found, proceeding with scrape...');
+      }
     
   } catch (error) {
     console.log(`Failed to load ${career_page_url}, trying with basic navigation...`);
@@ -399,25 +408,32 @@ async function scrapeWithoutAI(company: any): Promise<ScrapedJob[]> {
   
   try {
     await page.goto(company.career_page_url, { waitUntil: 'networkidle', timeout: 60000 });
-    
+    await page.waitForTimeout(8000);
     try {
-      await page.click('button:has-text("Accept"), button:has-text("OK"), button:has-text("Agree"), [id*="cookie"] button, [class*="cookie"] button', { timeout: 3000 });
-      await page.waitForTimeout(2000);
+      await page.click('button:has-text("Load More"), button:has-text("Show More"), .load-more, .pagination a', { timeout: 3000 });
+      await page.waitForTimeout(3000);
     } catch (e) {
       console.log('[SCRAPER] No cookie banner found or failed to click');
     }
     
-    await page.evaluate(() => { for (let i = 0; i < 5; i++) window.scrollTo(0, document.body.scrollHeight); });
-    await page.waitForTimeout(5000);
+    await page.evaluate(() => { for (let i = 0; i < 5; i++) window.scrollTo(0, document.body.scrollHeight); }); // Scroll to load dynamic content
+    await page.goto(findCareerPageUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(15000);
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('div[data-automation-id="jobTitle"], .iCIMS_InfoMsg, .iCIMS_JobsTable', { timeout: 20000 }).catch(() => console.log('ICIMS elements not found'));
     
     const jobsData = await page.evaluate((keywords) => {
       const jobSelectors = [
+        'div[data-automation-id="jobTitle"] a', 'a[data-automation-id="job-title"]', 
+        '.iCIMS_JobsTable a', 'td.iCIMS_JobsTable a', '.jobTitle a',
         'a[href*="job"]', 'a[href*="career"]', 'a[href*="position"]', 'a[href*="role"]',
         'a[href*="apply"]', '.job-title a', '.position a', '.career a', '[data-job] a',
-        'h1 a, h2 a, h3 a, h4 a'
+        '[data-job-id] a', '.job-title a', '.job-link', 'a[href*="searchjobs"]',
+        'h1 a, h2 a, h3 a, h4 a', 'a[href*="job"]', 'a[href*="searchjobs"]', 'a[href*="apply"]',
+        '.job-title a', '.position a', '.career a', '[data-job] a', '[data-job-id] a'
       ];
       
-      const found: Omit<ScrapedJob, 'matchedKeywords' | 'dateFound' | 'company_id'>[] = [];
+      const found: Omit<ScrapedJob, 'matchedKeywords' | 'dateFound' | 'companyId'>[] = [];
       const seen = new Set<string>();
       
       jobSelectors.forEach(selector => {
@@ -459,7 +475,7 @@ async function scrapeWithoutAI(company: any): Promise<ScrapedJob[]> {
       ...job,
       url: job.url?.startsWith('http') ? job.url : new URL(job.url, company.url).toString(),
       companyNameTmp: company.name,
-      company_id: company.id, // FIXED: Changed from companyId to company_id
+      companyId: company.id, // FIXED: Changed from companyId to company_id
       dateFound: new Date().toISOString(),
       status: 'New' as const,
       priority: company.priority,
@@ -496,8 +512,8 @@ async function getCompanyNames(): Promise<Map<number, string>> {
 
 function mapJobsWithCompanyNames(jobs: any[], companyNames: Map<number, string>) {
   return jobs.map(job => {
-    const companyName = companyNames.get(job.company_id) || 'Unknown Company'; // FIXED: Changed from companyId
-    return { ...job, companyName, company: { id: job.company_id, name: companyName } }; // FIXED: Changed from companyId
+    const companyName = companyNames.get(job.companyId) || 'Unknown Company'; // FIXED: Changed from companyId
+    return { ...job, companyName, company: { id: job.companyId, name: companyName } }; // FIXED: Changed from companyId
   });
 }
 
@@ -634,15 +650,15 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
         console.log('Inserting jobs into database...');
         const jobsToInsert = jobs.map(job => {
           const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
-          return { 
-            ...dbJob, 
-            company_id: company.id, // FIXED: Use company_id consistently
-            priority, 
-            status: 'New', 
-            matched_keywords: job.matchedKeywords || [],
-            user_id: userId
-          };
-        });
+            return { 
+              ...dbJob, 
+              companyId: company.id,
+              priority, 
+              status: 'New', 
+              matchedKeywords: job.matchedKeywords || [], // CHANGE FROM: matched_keywords
+              user_id: userId
+            };
+          });
         
         const { error: jobError } = await supabase.from('jobs').insert(jobsToInsert);
         if (jobError) {
@@ -657,8 +673,7 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
         ...job, 
         id: job.id || Date.now() + Math.random(),
         applicationDeadline: job.applicationDeadlineTmp,
-        companyId: company.id, // For frontend compatibility
-        company_id: company.id // For database consistency
+        companyId: company.id,
       }));
 
       const companyNames = new Map([[company.id, name]]);

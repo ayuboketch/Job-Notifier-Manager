@@ -69,7 +69,7 @@ export default function AddCompanyModal({
 
   useEffect(() => {
     if (editingCompany && isEditing) {
-      setCompanyUrl(editingCompany.url.replace("https://www.", ""));
+      setCompanyUrl(editingCompany.url.replace("https://", ""));
       setJobKeywords(editingCompany.keywords?.join(", ") || "");
       setPriority(editingCompany.priority || "medium");
       setCheckInterval(
@@ -120,7 +120,7 @@ export default function AddCompanyModal({
     // auto-prefill
     let formattedUrl = companyUrl.trim();
     if (!formattedUrl.startsWith("http")) {
-      formattedUrl = `https://www.${formattedUrl}`;
+      formattedUrl = `https://${formattedUrl}`;
     }
     if (!validateUrl(formattedUrl)) {
       setError("Please enter a valid URL");
@@ -143,7 +143,7 @@ export default function AddCompanyModal({
       if (idx < messages.length) {
         const nextMessage = messages[idx++];
         // Ensure the message is a string before setting
-        if (typeof nextMessage === 'string') setProgress(nextMessage);
+        if (typeof nextMessage === "string") setProgress(nextMessage);
       }
     }, 4000); // Reduced interval for more frequent updates
 
@@ -317,7 +317,7 @@ export default function AddCompanyModal({
             <View style={styles.section}>
               <Text style={styles.label}>Company Website URL *</Text>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputPrefix}>https://www.</Text>
+                <Text style={styles.inputPrefix}>https://</Text>
                 <TextInput
                   style={styles.inputField}
                   value={companyUrl}
@@ -346,8 +346,8 @@ export default function AddCompanyModal({
                   ellipsizeMode="tail"
                 >
                   {companyUrl
-                    ? `https://www.${companyUrl}`
-                    : "https://www.company.com"}
+                    ? `https://${companyUrl}`
+                    : "https://company.com"}
                 </Text>
                 <TextInput
                   style={styles.inputField}

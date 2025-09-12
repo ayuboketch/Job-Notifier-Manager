@@ -5,17 +5,23 @@
   },
   "build": {
     "development": {
-      "distribution": "internal"
+      "developmentClient": true,
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://job-notifier-manager-production.up.railway.app"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://job-notifier-manager-production.up.railway.app"
       }
     },
     "production": {
       "autoIncrement": true,
-       "android": {
+      "android": {
         "buildType": "apk"
       }
     }

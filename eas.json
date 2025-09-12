@@ -25,15 +25,16 @@
         "buildType": "apk"
       },
       "env": {
+        "EXPO_PUBLIC_API_BASE_URL": "https://job-notifier-manager-production.up.railway.app",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
         "SENTRY_ORG": "job-notifier-manager",
         "SENTRY_PROJECT": "react-native"
-      },
-      "hooks": {
-        "preBuild": "sentry-cli releases new $EAS_BUILD_ID && sentry-cli releases set-commits $EAS_BUILD_ID --auto",
-        "postBuild": "sentry-cli-expo-upload-sourcemaps"
       }
     }
+  },
+  "hooks": {
+    "pre-build": "sentry-cli releases new $EAS_BUILD_ID && sentry-cli releases set-commits $EAS_BUILD_ID --auto",
+    "post-build": "npx sentry-expo upload-sourcemaps"
   },
   "submit": {
     "production": {}

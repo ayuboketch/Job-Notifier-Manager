@@ -2,6 +2,13 @@
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: 'https://c7c4862cd4da4bfa8dff24884c6fe8d5@o4510006642802688.ingest.de.sentry.io/4510006645489744',
+  tracesSampleRate: 1.0, // captures performance data
+  environment: __DEV__ ? 'development' : 'production',
+});
 
 // Keep the splash screen visible until we are ready to render
 SplashScreen.preventAutoHideAsync();
@@ -51,10 +58,12 @@ function RootLayoutNav() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   return (
     <AuthProvider>
       <RootLayoutNav />
     </AuthProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

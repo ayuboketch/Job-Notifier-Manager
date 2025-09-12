@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import { supabase } from "../lib/supabase";
+import * as Sentry from '@sentry/react-native';
 
 export interface UserProfile extends User {
   full_name: string | null;
@@ -88,6 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         setUser(null);
         setHasCompletedOnboarding(false);
         setLoading(false);
+        Sentry.setUser(null);
         return;
       }
 
@@ -117,8 +119,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
         console.error("Error fetching user profile:", error);
         // If profile doesn't exist, create basic user object
         setUser(session.user as UserProfile);
+        Sentry.setUser({ id: session.user.id, email: session.user.email });
       } else {
         setUser(profile as UserProfile);
+        Sentry.setUser({ id: profile.id, email: profile.email });
       }
 
       // FIX: Remove the extra space in the key name

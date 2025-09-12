@@ -23,6 +23,15 @@
       "autoIncrement": true,
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
+        "SENTRY_ORG": "job-notifier-manager",
+        "SENTRY_PROJECT": "react-native"
+      },
+      "hooks": {
+        "preBuild": "sentry-cli releases new $EAS_BUILD_ID && sentry-cli releases set-commits $EAS_BUILD_ID --auto",
+        "postBuild": "sentry-cli-expo-upload-sourcemaps"
       }
     }
   },

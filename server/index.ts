@@ -1043,6 +1043,11 @@ app.use((err: any, req: Request, res: express.Response, next: express.NextFuncti
   res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+
 /* ---------- Server startup ------------------------------------ */
 if (process.env['NODE_ENV'] !== 'test') {
   app.listen(PORT, '0.0.0.0', () => {

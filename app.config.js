@@ -11,11 +11,11 @@ export default {
     icon: "./assets/images/Job-Notifier-Manager.png",
     extra: {
       eas: {
-        projectId: "e813559c-b463-4d5a-adc3-4e6b9a564e96"
+        projectId: "e813559c-b463-4d5a-adc3-4e6b9a564e96",
       },
-      apiBaseUrl: "https://job-notifier-manager-production.up.railway.app"
+      apiBaseUrl: "https://job-notifier-manager-production.up.railway.app",
     },
-    
+
     splash: {
       image: "./assets/images/Job-Notifier-Manager.png",
       resizeMode: "contain",
@@ -46,14 +46,11 @@ export default {
       favicon: "./assets/images/Job-Notifier-Manager.png",
     },
 
-    plugins: ["expo-router"],
+    plugins: ["expo-router", "sentry-expo"],
 
     experiments: {
       typedRoutes: true,
     },
-    usesCleartextTraffic: true, // Allow cleartext traffic for development
-
-    // FIX: The 'extra' block is removed.
-    // Expo now automatically handles variables prefixed with EXPO_PUBLIC_ from your .env file.
+    usesCleartextTraffic: true,
   },
 };

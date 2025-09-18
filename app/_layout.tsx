@@ -2,6 +2,7 @@
 import { SplashScreen, Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "../context/AuthContext";
+import { StatusBar } from 'expo-status-bar'; // Ensure this line is present
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -31,7 +32,10 @@ function RootLayoutNav() {
 
     if (user && hasCompletedOnboarding) {
       // User is logged in and onboarded, should be in the app.
-      router.replace("/(app)/dashboard");
+      // Ensure you are not in the app flow already to prevent loop
+      if (segments[0] !== '(app)') {
+        router.replace("/(app)/dashboard");
+      }
     } else if (user && !hasCompletedOnboarding) {
       // User is logged in but not onboarded, should be on the onboarding screen.
       if (!onOnboardingScreen) {
@@ -48,13 +52,17 @@ function RootLayoutNav() {
   // This stable layout prevents errors and white screens.
   // The useEffect above handles all navigation.
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="(auth)" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="(app)" />
-      <Stack.Screen name="+not-found" />
-    </Stack>
+    <>
+      {/* Add StatusBar here */}
+      <StatusBar style="auto" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(app)" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </>
   );
 }
 

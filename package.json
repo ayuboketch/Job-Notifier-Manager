@@ -13,16 +13,16 @@
     "reset-project": "node ./scripts/reset-project.js",
     "test": "jest",
     "backend": "cd server && nodemon --exec tsx index.ts",
-    "frontend": "npx expo start -c --tunnel",
     "frontend:local": "npx expo start",
     "typescript": "npx tsc -noEmit --watch",
-    "start": "npx expo start --tunnel",
+    "start": "cd server && npm start",
+    "frontend": "npx expo start --tunnel",
+    "dev": "concurrently \"cd server && npm run dev\" \"npx expo start --tunnel -c\"",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "server": "cd server && npm start",
     "dev-server": "cd server && npm run dev",
-    "dev": "concurrently \"cd server && npm run dev\" \"npx expo start --tunnel -c\"",
     "install-all": "npm install && cd server && npm install"
   },
   "dependencies": {
@@ -69,11 +69,13 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
+    "sentry-expo": "~7.0.0",
     "tailwind": "^2.3.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@sentry/cli": "^2.53.0",
     "@types/jest": "^30.0.0",
     "@types/jsdom": "^21.1.7",
     "@types/next": "^8.0.7",

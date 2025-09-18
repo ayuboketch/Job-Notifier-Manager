@@ -1,5 +1,6 @@
 [build]
-   builder = "nixpacks"
-   
-   [deploy]
-   startCommand = "npm start"
+builder = "nixpacks"
+buildCommand = "cd server && npm ci"
+
+[deploy]
+startCommand = "cd server && npm start"

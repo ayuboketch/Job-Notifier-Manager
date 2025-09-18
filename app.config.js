@@ -46,7 +46,7 @@ export default {
       favicon: "./assets/images/Job-Notifier-Manager.png",
     },
 
-    plugins: ["expo-router", "sentry-expo", "sentry-react-native"],
+    plugins: ["expo-router", "sentry-expo"],
 
     experiments: {
       typedRoutes: true,

@@ -4,3 +4,6 @@ buildCommand = "cd server && npm ci"
 
 [deploy]
 startCommand = "cd server && npm start"
+
+[variables]
+NODE_VERSION = "20"

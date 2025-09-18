@@ -1,9 +1,10 @@
 /// server/index.ts - Fixed version with schema corrections and duplicate prevention
 
-import * as dotenv from 'dotenv';
+// import * as dotenv from 'dotenv';
+import dotenv from 'dotenv';
 import 'dotenv/config';
-import * as path from 'path';
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+// dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: '.env' });
 
 // The rest of your imports
 import { createClient } from '@supabase/supabase-js';

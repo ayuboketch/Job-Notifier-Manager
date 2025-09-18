@@ -17,7 +17,7 @@ import { TrackedWebsite } from "../types";
 
 // Add these types/constants - you may need to adjust based on your actual API setup
 const API_BASE_URL =
-  process.env["EXPO_PUBLIC_API_URL"] || "https://your-api-url.com";
+  process.env["EXPO_PUBLIC_API_URL"] || "https://fantastic-liberation-production.up.railway.app";
 
 const apiRequest = async (url: string, options: RequestInit) => {
   const response = await fetch(url, {

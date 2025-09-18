@@ -7,7 +7,7 @@
     "development": {
       "developmentClient": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://job-notifier-manager-production.up.railway.app"
+        "EXPO_PUBLIC_API_BASE_URL": "https://fantastic-liberation-production.up.railway.app"
       }
     },
     "preview": {
@@ -16,7 +16,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://job-notifier-manager-production.up.railway.app"
+        "EXPO_PUBLIC_API_BASE_URL": "https://fantastic-liberation-production.up.railway.app"
       }
     },
     "production": {
@@ -25,7 +25,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://job-notifier-manager-production.up.railway.app",
+        "EXPO_PUBLIC_API_BASE_URL": "https://fantastic-liberation-production.up.railway.app",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
         "SENTRY_ORG": "job-notifier-manager",
         "SENTRY_PROJECT": "react-native"

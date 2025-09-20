@@ -18,7 +18,8 @@ import {
 type Company = Database['public']['Tables']['companies']['Row'];
 type Job = Database['public']['Tables']['jobs']['Row'];
 
-/* ---------- Supabase ---------------------------------------------------- */
+/* ---------- Supabase ----------------------------------------------------
+ */
 
 const supabaseUrl = process.env['SUPABASE_URL'] ?? process.env['EXPO_PUBLIC_SUPABASE_URL'];
 const supabaseKey = process.env['SUPABASE_SERVICE_ROLE_KEY'] ??
@@ -91,7 +92,7 @@ app.get('/health', (req, res) => {
 });
 
 app.get('/api/health-detailed', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'OK', 
     timestamp: new Date().toISOString(),
     environment: process.env['NODE_ENV'],
@@ -173,7 +174,7 @@ const findCareerPageUrl = async (baseUrl: string): Promise<string> => {
     let browser;
     try {
       // browser = await chromium.launch({ headless: true });
-      const browser = await chromium.launch({ 
+      const browser = await chromium.launch({
         headless: true,
         args: ['--no-sandbox', '--disable-web-security', '--disable-dev-shm-usage']
       });
@@ -271,7 +272,7 @@ async function scrapeJobs(
   });
 
   try {
-    await page.goto(career_page_url, { 
+    await page.goto(career_page_url, {
       waitUntil: 'networkidle', 
       timeout: 30000
     });
@@ -286,7 +287,7 @@ async function scrapeJobs(
   } catch (error) {
     console.log(`Failed to load ${career_page_url}, trying with basic navigation...`);
     try {
-      await page.goto(career_page_url, { 
+      await page.goto(career_page_url, {
         waitUntil: 'load',
         timeout: 15000 
       });
@@ -404,68 +405,74 @@ async function cleanJobsWithAI(jobs: ScrapedJob[]): Promise<ScrapedJob[]> {
 
 async function scrapeWithoutAI(company: any): Promise<ScrapedJob[]> {
   console.log(`[SCRAPER] Scraping ${company.name} without AI...`);
-  const browser = await chromium.launch({ headless: false, args: ['--no-sandbox', '--disable-blink-features=AutomationControlled']});
+  const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-blink-features=AutomationControlled']});
   const page = await browser.newPage();
   
   try {
+    console.log(`[SCRAPER] Navigating to ${company.career_page_url}`);
     await page.goto(company.career_page_url, { waitUntil: 'networkidle', timeout: 60000 });
-    await page.waitForTimeout(8000);
+    
+    console.log('[SCRAPER] Page loaded. Waiting for dynamic content...');
+    await page.waitForTimeout(5000); // Wait for JS to execute
+
+    // Try to click "Load More" or similar buttons
     try {
-      await page.click('button:has-text("Load More"), button:has-text("Show More"), .load-more, .pagination a', { timeout: 3000 });
-      await page.waitForTimeout(3000);
+      const loadMoreButton = await page.$('button:has-text("Load More"), button:has-text("Show More"), .load-more, .pagination a');
+      if (loadMoreButton) {
+        console.log('[SCRAPER] Clicking "Load More" button...');
+        await loadMoreButton.click();
+        await page.waitForTimeout(3000);
+      }
     } catch (e) {
-      console.log('[SCRAPER] No cookie banner found or failed to click');
+      console.log('[SCRAPER] No "Load More" button found or failed to click.');
     }
     
-    await page.evaluate(() => { for (let i = 0; i < 5; i++) window.scrollTo(0, document.body.scrollHeight); }); // Scroll to load dynamic content
-    await page.goto(findCareerPageUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(15000);
-    await page.waitForLoadState('networkidle');
-    await page.waitForSelector('div[data-automation-id="jobTitle"], .iCIMS_InfoMsg, .iCIMS_JobsTable', { timeout: 20000 }).catch(() => console.log('ICIMS elements not found'));
-    
+    console.log('[SCRAPER] Scrolling to bottom of page to trigger lazy loading...');
+    await page.evaluate(() => { 
+      window.scrollTo(0, document.body.scrollHeight); 
+    });
+    await page.waitForTimeout(3000);
+
+    console.log('[SCRAPER] Evaluating page for job links...');
     const jobsData = await page.evaluate((keywords) => {
       const jobSelectors = [
-        'div[data-automation-id="jobTitle"] a', 'a[data-automation-id="job-title"]', 
-        '.iCIMS_JobsTable a', 'td.iCIMS_JobsTable a', '.jobTitle a',
-        'a[href*="job"]', 'a[href*="career"]', 'a[href*="position"]', 'a[href*="role"]',
-        'a[href*="apply"]', '.job-title a', '.position a', '.career a', '[data-job] a',
-        '[data-job-id] a', '.job-title a', '.job-link', 'a[href*="searchjobs"]',
-        'h1 a, h2 a, h3 a, h4 a', 'a[href*="job"]', 'a[href*="searchjobs"]', 'a[href*="apply"]',
-        '.job-title a', '.position a', '.career a', '[data-job] a', '[data-job-id] a'
+        'a[href*="job"]', 'a[href*="career"]', 'a[href*="position"]',
+        '.job-title a', '.job-link', '[data-job-id] a', 'a[data-automation-id="job-title"]'
       ];
       
       const found: Omit<ScrapedJob, 'matchedKeywords' | 'dateFound' | 'companyId'>[] = [];
       const seen = new Set<string>();
       
-      jobSelectors.forEach(selector => {
-        document.querySelectorAll(selector).forEach((el: Element) => {
-          const anchor = el as HTMLAnchorElement;
-          const title = (anchor.textContent || anchor.innerText || '').trim();
-          const url = anchor.href;
+      document.querySelectorAll(jobSelectors.join(', ')).forEach((el: Element) => {
+        const anchor = el as HTMLAnchorElement;
+        const title = (anchor.textContent || anchor.innerText || '').trim();
+        let url = anchor.href;
+
+        if (!title || !url || seen.has(url) || title.length < 4) return;
+        
+        // Resolve relative URLs
+        if (!url.startsWith('http')) {
+          url = new URL(url, document.baseURI).href;
+        }
+
+        const titleLower = title.toLowerCase();
+        const isJobRelated = keywords.length === 0 || keywords.some((kw: string) => titleLower.includes(kw.toLowerCase()));
           
-          if (!title || !url || seen.has(url) || title.length < 3) return;
-          
-          const titleLower = title.toLowerCase();
-          const isJobRelated = ['engineer', 'developer', 'manager', 'intern', 'specialist', 'analyst', 'coordinator', 'assistant', 'director', 'lead']
-            .some(role => titleLower.includes(role)) || keywords.some((kw: string) => titleLower.includes(kw.toLowerCase()));
-          
-          if (isJobRelated) {
-            seen.add(url);
-            const parent = el.closest('div, li, tr, article, section') || el.parentElement;
-            const parentText = parent?.textContent || '';
-            const salaryMatch = parentText.match(/\$[\d,]+(?:\s*-\s*\$[\d,]+)?|\d+k\s*-\s*\d+k/i);
-            const deadlineMatch = parentText.match(/deadline|apply by|closes on[\s:]*([^\n\r,]+)/i);
+        if (isJobRelated) {
+          seen.add(url);
+          const parent = el.closest('div, li, tr, article, section') || el.parentElement;
+          const parentText = parent?.textContent || '';
+          const salaryMatch = parentText.match(/\$[\\d,]+(?:\s*-\s*\$[\\d,]+)?|\d+k\s*-\s*\d+k/i);
+          const deadlineMatch = parentText.match(/deadline|apply by|closes on[\s:]*([^\n\r,]+)/i);
             
-            found.push({
-              title,
-              url,
-              salary: salaryMatch ? salaryMatch[0] : null,
-              applicationDeadlineTmp: deadlineMatch?.[1]?.trim() ?? null,
-              description: parentText.substring(0, 200) + '...',
-              requirements: null
-            });
-          }
-        });
+          found.push({
+            title,
+            url,
+            salary: salaryMatch ? salaryMatch[0] : null,
+            applicationDeadlineTmp: deadlineMatch?.[1]?.trim() ?? null,
+            description: parentText.substring(0, 250) + '...',            requirements: null
+          });
+        }
       });
       return found;
     }, company.keywords);
@@ -474,9 +481,8 @@ async function scrapeWithoutAI(company: any): Promise<ScrapedJob[]> {
     
     return jobsData.map((job): ScrapedJob => ({
       ...job,
-      url: job.url?.startsWith('http') ? job.url : new URL(job.url, company.url).toString(),
       companyNameTmp: company.name,
-      companyId: company.id, // FIXED: Changed from companyId to company_id
+      companyId: company.id,
       dateFound: new Date().toISOString(),
       status: 'New' as const,
       priority: company.priority,
@@ -487,7 +493,9 @@ async function scrapeWithoutAI(company: any): Promise<ScrapedJob[]> {
     console.error(`[SCRAPER] Error scraping ${company.name}:`, error);
     return [];
   } finally {
-      await browser.close();
+      if (browser) {
+        await browser.close();
+      }
   }
 }
 
@@ -574,7 +582,7 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
 
     if (existingCompany) {
       console.log('Company already exists:', existingCompany);
-      res.status(409).json({ 
+      res.status(409).json({
         success: false, 
         error: 'Company already exists',
         company: existingCompany 
@@ -618,7 +626,7 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
  
     if (error || !companies) {
       console.error('Database insert error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false, 
         error: 'Failed to add company', 
         detail: error?.message || 'Unknown database error'
@@ -651,7 +659,7 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
         console.log('Inserting jobs into database...');
         const jobsToInsert = jobs.map(job => {
           const { companyNameTmp, applicationDeadlineTmp, duties, ...dbJob } = job;
-            return { 
+            return {
               ...dbJob, 
               companyId: company.id,
               priority, 
@@ -681,7 +689,7 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
       const mappedJobs = mapJobsWithCompanyNames(jobsForResponse, companyNames);
       
       console.log('=== ADD COMPANY SUCCESS ===');
-      res.json({ 
+      res.json({
         success: true, 
         company, 
         jobsFound: jobs.length, 
@@ -690,7 +698,7 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
 
     } catch (scrapingError) {
       console.error('Scraping error:', scrapingError);
-      res.json({ 
+      res.json({
         success: true, 
         company, 
         jobsFound: 0, 
@@ -705,17 +713,17 @@ export const addCompanyHandler: RequestHandler<{}, any, CompanyInsert> = async (
     
     if (error instanceof z.ZodError) {
       console.error('Validation error:', error.flatten());
-      res.status(400).json({ 
+      res.status(400).json({
         success: false, 
         error: 'Validation error', 
-        details: error.flatten() 
+        details: error.flatten()
       });
       return;
     }
     
-    res.status(500).json({ 
+    res.status(500).json({
       success: false, 
-      error: 'Internal server error', 
+      error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: process.env['NODE_ENV'] === 'development' ? (error as Error).stack : undefined
     });
@@ -829,14 +837,14 @@ app.get('/api/debug/test-db', async (req, res) => {
       .select('*', { count: 'exact', head: true });
     
     if (error) {
-      return res.status(500).json({ 
-        error: 'Database connection failed', 
+      return res.status(500).json({
+        error: 'Database connection failed',
         details: error.message 
       });
     }
     
-    res.json({ 
-      status: 'Database connected', 
+    res.json({
+      status: 'Database connected',
       companiesCount: count,
       supabaseUrl: supabaseUrl ? 'Set' : 'Missing',
       supabaseKey: supabaseKey ? 'Set' : 'Missing'
@@ -901,7 +909,7 @@ app.get('/api/debug/schedule', async (req, res) => {
       };
     }) || [];
 
-    res.json({ 
+    res.json({
       currentTime: now.toLocaleString(),
       companies: schedule 
     });
@@ -916,14 +924,14 @@ app.get('/api/debug/test-db', async (_req, res) => {
     const { data, error } = await supabase.from('companies').select('count').limit(1);
     
     if (error) {
-      return res.status(500).json({ 
-        error: 'Database connection failed', 
+      return res.status(500).json({
+        error: 'Database connection failed',
         details: error.message 
       });
     }
     
-    res.json({ 
-      status: 'Database connected', 
+    res.json({
+      status: 'Database connected',
       supabaseUrl: supabaseUrl ? 'Set' : 'Missing',
       supabaseKey: supabaseKey ? 'Set' : 'Missing'
     });
@@ -1018,11 +1026,11 @@ app.post('/api/companies/:id/check-now', async (req, res): Promise<void> => {
         await supabase.from('jobs').insert(jobsToInsert);
       }
       
-      await supabase.from('companies').update({ 
+      await supabase.from('companies').update({
         last_checked_at: new Date().toISOString() 
       }).eq('id', company.id);
       
-      res.json({ 
+      res.json({
         success: true, 
         company: company.name,
         newJobs: newJobs.length,
